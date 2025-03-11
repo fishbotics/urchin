@@ -4088,7 +4088,9 @@ class URDF(URDFTypeWithMesh):
                             eidx = sidx + 6
                         else:
                             eidx = sidx + 1
-                        joint_cfg[j] = cfgs[:, sidx:eidx].squeeze()
+                        joint_cfg[j] = cfgs[:, sidx:eidx]
+                        if joint_cfg[j].shape[-1] == 1:
+                            joint_cfg[j] = joint_cfg[j].squeeze(-1)
                         sidx = eidx
         else:
             raise ValueError("Incorrectly formatted config array")
