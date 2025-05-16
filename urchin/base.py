@@ -25,8 +25,12 @@ class URDFType:
       containing this type of object.
     """
 
-    _ATTRIBS: dict[str, tuple[type, bool]] = {}  # Map from attrib name to (type, required)
-    _ELEMENTS: dict[str, tuple[type, bool, bool]] = {}  # Map from element name to (type, required, multiple)
+    _ATTRIBS: dict[str, tuple[type, bool]] = (
+        {}
+    )  # Map from attrib name to (type, required)
+    _ELEMENTS: dict[str, tuple[type, bool, bool]] = (
+        {}
+    )  # Map from element name to (type, required, multiple)
     _TAG: str = ""  # XML tag for this element
 
     def __init__(self):
@@ -364,4 +368,3 @@ class URDFTypeWithMesh(URDFType):
             An instance of this class parsed from the node.
         """
         return cls(**cls._parse(node, path, lazy_load_meshes))
-

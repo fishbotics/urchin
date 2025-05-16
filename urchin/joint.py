@@ -1,8 +1,10 @@
+import numpy as np
+import trimesh
+from lxml import etree as ET
+
 from urchin.base import URDFType
 from urchin.utils import configure_origin, parse_origin, unparse_origin
-import numpy as np
-from lxml import etree as ET
-import trimesh
+
 
 class SafetyController(URDFType):
     """A controller for joint movement safety.
@@ -106,6 +108,7 @@ class SafetyController(URDFType):
             soft_lower_limit=self.soft_lower_limit,
             soft_upper_limit=self.soft_upper_limit,
         )
+
 
 class JointCalibration(URDFType):
     """The reference positions of the joint.

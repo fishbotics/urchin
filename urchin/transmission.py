@@ -1,5 +1,6 @@
-from urchin.base import URDFType
 from lxml import etree as ET
+
+from urchin.base import URDFType
 
 
 class Actuator(URDFType):
@@ -311,5 +312,3 @@ class Transmission(URDFType):
             joints=[j.copy(prefix) for j in self.joints],
             actuators=[a.copy(prefix) for a in self.actuators],
         )
-
-

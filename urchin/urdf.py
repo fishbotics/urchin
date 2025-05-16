@@ -2,16 +2,18 @@ import copy
 import os
 import time
 from collections import OrderedDict
-from lxml import etree as ET
 
 import networkx as nx
 import numpy as np
 import trimesh
-from urchin.transmission import Transmission
-from urchin.material import Material
-from urchin.link import Link
-from urchin.joint import Joint
+from lxml import etree as ET
+
 from urchin.base import URDFTypeWithMesh
+from urchin.joint import Joint
+from urchin.link import Link
+from urchin.material import Material
+from urchin.transmission import Transmission
+
 
 class URDF(URDFTypeWithMesh):
     """The top-level URDF specification.

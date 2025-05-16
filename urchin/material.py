@@ -1,9 +1,10 @@
-from urchin.base import URDFType
-from urchin.utils import get_filename
-
 import numpy as np
 import PIL
 from lxml import etree as ET
+
+from urchin.base import URDFType
+from urchin.utils import get_filename
+
 
 class Texture(URDFType):
     """An image-based texture.

@@ -1,10 +1,19 @@
-from urchin.base import URDFType, URDFTypeWithMesh
-import numpy as np
-from urchin.utils import configure_origin, parse_origin, unparse_origin, get_filename, load_meshes
-import trimesh
-from urchin.material import Material
-from lxml import etree as ET
 import os
+
+import numpy as np
+import trimesh
+from lxml import etree as ET
+
+from urchin.base import URDFType, URDFTypeWithMesh
+from urchin.material import Material
+from urchin.utils import (
+    configure_origin,
+    get_filename,
+    load_meshes,
+    parse_origin,
+    unparse_origin,
+)
+
 
 class Box(URDFType):
     """A rectangular prism whose center is at the local origin.
@@ -60,6 +69,7 @@ class Box(URDFType):
             size=self.size.copy() * scale,
         )
         return b
+
 
 class Cylinder(URDFType):
     """A cylinder whose center is at the local origin.
@@ -209,6 +219,7 @@ class Sphere(URDFType):
             radius=self.radius * scale,
         )
         return s
+
 
 class Mesh(URDFTypeWithMesh):
     """A triangular mesh object.
@@ -375,10 +386,6 @@ class Mesh(URDFTypeWithMesh):
         return m
 
 
-
-
-
-
 class Geometry(URDFTypeWithMesh):
     """A wrapper for all geometry types.
 
@@ -505,6 +512,7 @@ class Geometry(URDFTypeWithMesh):
             mesh=(self.mesh.copy(prefix=prefix, scale=scale) if self.mesh else None),
         )
         return v
+
 
 class Collision(URDFTypeWithMesh):
     """Collision properties of a link.
@@ -706,6 +714,7 @@ class Visual(URDFTypeWithMesh):
             material=(self.material.copy(prefix=prefix) if self.material else None),
         )
 
+
 class Inertial(URDFType):
     """The inertial properties of a link.
 
@@ -811,6 +820,7 @@ class Inertial(URDFType):
             inertia=inertia,
             origin=origin,
         )
+
 
 class Link(URDFTypeWithMesh):
     """A link of a rigid object.
@@ -965,4 +975,3 @@ class Link(URDFTypeWithMesh):
         )
         cpy._collision_mesh = cm
         return cpy
-
