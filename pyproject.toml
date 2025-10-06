@@ -49,3 +49,25 @@ docs = [
   "sphinx_rtd_theme",  # RTD theme for sphinx
   "sphinx-automodapi"  # For generating nice tables
 ]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["lxml.*", "trimesh.*", "networkx.*", "PIL.*", "pyribbit.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true

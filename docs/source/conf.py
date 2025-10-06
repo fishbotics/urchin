@@ -217,9 +217,7 @@ class MyPythonDomain(PythonDomain):
     def find_obj(self, env, modname, classname, name, type, searchmode=0):
         """Ensures an object always resolves to the desired module
         if defined there."""
-        orig_matches = PythonDomain.find_obj(
-            self, env, modname, classname, name, type, searchmode
-        )
+        orig_matches = PythonDomain.find_obj(self, env, modname, classname, name, type, searchmode)
 
         if len(orig_matches) <= 1:
             return orig_matches

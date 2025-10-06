@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Sequence
+
 from lxml import etree as ET
 
 from urchin.base import URDFType
@@ -10,9 +14,8 @@ class Actuator(URDFType):
     ----------
     name : str
         The name of this actuator.
-    mechanicalReduction : str, optional
-        A specifier for the mechanical reduction at the joint/actuator
-        transmission.
+    mechanicalReduction : float, optional
+        Mechanical reduction (ratio) at the joint/actuator transmission.
     hardwareInterfaces : list of str, optional
         The supported hardware interfaces to the actuator.
     """
@@ -22,38 +25,43 @@ class Actuator(URDFType):
     }
     _TAG = "actuator"
 
-    def __init__(self, name, mechanicalReduction=None, hardwareInterfaces=None):
+    def __init__(
+        self,
+        name: str,
+        mechanicalReduction: float | None = None,
+        hardwareInterfaces: Sequence[str] | None = None,
+    ):
         self.name = name
         self.mechanicalReduction = mechanicalReduction
         self.hardwareInterfaces = hardwareInterfaces
 
     @property
-    def name(self):
+    def name(self) -> str:
         """str : The name of this actuator."""
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: object) -> None:
         self._name = str(value)
 
     @property
-    def mechanicalReduction(self):
-        """str : A specifier for the type of mechanical reduction."""
+    def mechanicalReduction(self) -> float | None:
+        """float | None : Mechanical reduction (ratio)."""
         return self._mechanicalReduction
 
     @mechanicalReduction.setter
-    def mechanicalReduction(self, value):
+    def mechanicalReduction(self, value: float | str | None) -> None:
         if value is not None:
-            value = str(value)
+            value = float(value)
         self._mechanicalReduction = value
 
     @property
-    def hardwareInterfaces(self):
+    def hardwareInterfaces(self) -> list[str]:
         """list of str : The supported hardware interfaces."""
         return self._hardwareInterfaces
 
     @hardwareInterfaces.setter
-    def hardwareInterfaces(self, value):
+    def hardwareInterfaces(self, value: Sequence[str] | None) -> None:
         if value is None:
             value = []
         else:
@@ -63,19 +71,15 @@ class Actuator(URDFType):
         self._hardwareInterfaces = value
 
     @classmethod
-    def _from_xml(cls, node, path):
-        kwargs = cls._parse(node, path)
-        mr = node.find("mechanicalReduction")
-        if mr is not None:
-            mr = float(mr.text)
-        kwargs["mechanicalReduction"] = mr
-        hi = node.findall("hardwareInterface")
-        if len(hi) > 0:
-            hi = [h.text for h in hi]
-        kwargs["hardwareInterfaces"] = hi
-        return cls(**kwargs)
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+        name = str(node.attrib["name"]) if "name" in node.attrib else ""
+        mr_node = node.find("mechanicalReduction")
+        mr_val = float(mr_node.text) if mr_node is not None and mr_node.text else None
+        hi_nodes = node.findall("hardwareInterface")
+        hi_list = [str(h.text) for h in hi_nodes if h is not None and h.text]
+        return cls(name=name, mechanicalReduction=mr_val, hardwareInterfaces=hi_list)
 
-    def _to_xml(self, parent, path):
+    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
         node = self._unparse(path)
         if self.mechanicalReduction is not None:
             mr = ET.Element("mechanicalReduction")
@@ -88,8 +92,8 @@ class Actuator(URDFType):
                 node.append(h)
         return node
 
-    def copy(self, prefix="", scale=None):
-        """Create a deep copy of the visual with the prefix applied to all names.
+    def copy(self, prefix: str = "", scale: float | None = None) -> "Actuator":
+        """Create a deep copy with the prefix applied to all names.
 
         Parameters
         ----------
@@ -124,26 +128,26 @@ class TransmissionJoint(URDFType):
     }
     _TAG = "joint"
 
-    def __init__(self, name, hardwareInterfaces):
+    def __init__(self, name: str, hardwareInterfaces: Sequence[str] | None):
         self.name = name
         self.hardwareInterfaces = hardwareInterfaces
 
     @property
-    def name(self):
+    def name(self) -> str:
         """str : The name of this transmission joint."""
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: object) -> None:
         self._name = str(value)
 
     @property
-    def hardwareInterfaces(self):
+    def hardwareInterfaces(self) -> list[str]:
         """list of str : The supported hardware interfaces."""
         return self._hardwareInterfaces
 
     @hardwareInterfaces.setter
-    def hardwareInterfaces(self, value):
+    def hardwareInterfaces(self, value: Sequence[str] | None) -> None:
         if value is None:
             value = []
         else:
@@ -153,15 +157,13 @@ class TransmissionJoint(URDFType):
         self._hardwareInterfaces = value
 
     @classmethod
-    def _from_xml(cls, node, path):
-        kwargs = cls._parse(node, path)
-        hi = node.findall("hardwareInterface")
-        if len(hi) > 0:
-            hi = [h.text for h in hi]
-        kwargs["hardwareInterfaces"] = hi
-        return cls(**kwargs)
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+        name = str(node.attrib["name"]) if "name" in node.attrib else ""
+        hi_nodes = node.findall("hardwareInterface")
+        hi_list = [str(h.text) for h in hi_nodes if h is not None and h.text]
+        return cls(name=name, hardwareInterfaces=hi_list)
 
-    def _to_xml(self, parent, path):
+    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
         node = self._unparse(path)
         if len(self.hardwareInterfaces) > 0:
             for hi in self.hardwareInterfaces:
@@ -170,7 +172,7 @@ class TransmissionJoint(URDFType):
                 node.append(h)
         return node
 
-    def copy(self, prefix="", scale=None):
+    def copy(self, prefix: str = "", scale: float | None = None) -> "TransmissionJoint":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -219,39 +221,45 @@ class Transmission(URDFType):
     }
     _TAG = "transmission"
 
-    def __init__(self, name, trans_type, joints=None, actuators=None):
+    def __init__(
+        self,
+        name: str,
+        trans_type: str,
+        joints: Sequence["TransmissionJoint"] | None = None,
+        actuators: Sequence[Actuator] | None = None,
+    ):
         self.name = name
         self.trans_type = trans_type
         self.joints = joints
         self.actuators = actuators
 
     @property
-    def name(self):
+    def name(self) -> str:
         """str : The name of this transmission."""
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: object) -> None:
         self._name = str(value)
 
     @property
-    def trans_type(self):
+    def trans_type(self) -> str:
         """str : The type of this transmission."""
         return self._trans_type
 
     @trans_type.setter
-    def trans_type(self, value):
+    def trans_type(self, value: object) -> None:
         self._trans_type = str(value)
 
     @property
-    def joints(self):
+    def joints(self) -> list["TransmissionJoint"]:
         """:class:`.TransmissionJoint` : The joints the transmission is
         connected to.
         """
         return self._joints
 
     @joints.setter
-    def joints(self, value):
+    def joints(self, value: Sequence["TransmissionJoint"] | None) -> None:
         if value is None:
             value = []
         else:
@@ -262,12 +270,12 @@ class Transmission(URDFType):
         self._joints = value
 
     @property
-    def actuators(self):
+    def actuators(self) -> list[Actuator]:
         """:class:`.Actuator` : The actuators the transmission is connected to."""
         return self._actuators
 
     @actuators.setter
-    def actuators(self, value):
+    def actuators(self, value: Sequence[Actuator] | None) -> None:
         if value is None:
             value = []
         else:
@@ -278,22 +286,26 @@ class Transmission(URDFType):
         self._actuators = value
 
     @classmethod
-    def _from_xml(cls, node, path):
-        kwargs = cls._parse(node, path)
-        trans_type = node.attrib.get("type")
-        if trans_type is None:
-            trans_type = node.find("type").text
-        kwargs["trans_type"] = trans_type
-        return cls(**kwargs)
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+        name = str(node.attrib["name"]) if "name" in node.attrib else ""
+        ttype = node.attrib.get("type")
+        if ttype is None:
+            t_node = node.find("type")
+            ttype = t_node.text if t_node is not None else ""
+        joints = [TransmissionJoint._from_xml(n, path) for n in node.findall("joint")]
+        actuators = [Actuator._from_xml(n, path) for n in node.findall("actuator")]
+        return cls(name=name, trans_type=str(ttype), joints=joints, actuators=actuators)
 
-    def _to_xml(self, parent, path):
+    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
         node = self._unparse(path)
         ttype = ET.Element("type")
         ttype.text = self.trans_type
         node.append(ttype)
         return node
 
-    def copy(self, prefix="", scale=None):
+    def copy(
+        self, prefix: str = "", scale: float | Sequence[float] | None = None
+    ) -> "Transmission":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters

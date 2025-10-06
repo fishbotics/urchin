@@ -1,10 +1,13 @@
-import copy
+from __future__ import annotations
+
 import os
 import time
 from collections import OrderedDict
+from typing import IO, Mapping, Sequence, cast
 
 import networkx as nx
 import numpy as np
+import numpy.typing as npt
 import trimesh
 from lxml import etree as ET
 
@@ -51,13 +54,13 @@ class URDF(URDFTypeWithMesh):
 
     def __init__(
         self,
-        name,
-        links,
-        joints=None,
-        transmissions=None,
-        materials=None,
-        other_xml=None,
-    ):
+        name: str,
+        links: Sequence[Link],
+        joints: Sequence[Joint] | None = None,
+        transmissions: Sequence[Transmission] | None = None,
+        materials: Sequence[Material] | None = None,
+        other_xml: bytes | str | None = None,
+    ) -> None:
         if joints is None:
             joints = []
         if transmissions is None:
@@ -67,41 +70,39 @@ class URDF(URDFTypeWithMesh):
 
         self.name = name
         self.other_xml = other_xml
-        self.mesh_need_to_mirror = []
+        self.mesh_need_to_mirror: list[str] = []
 
         # No setters for these
-        self._links = list(links)
-        self._joints = list(joints)
-        self._transmissions = list(transmissions)
-        self._materials = list(materials)
+        self._links: list[Link] = list(links)
+        self._joints: list[Joint] = list(joints)
+        self._transmissions: list[Transmission] = list(transmissions)
+        self._materials: list[Material] = list(materials)
 
         # Set up private helper maps from name to value
-        self._link_map = {}
-        self._joint_map = {}
-        self._transmission_map = {}
-        self._material_map = {}
+        self._link_map: dict[str, Link] = {}
+        self._joint_map: dict[str, Joint] = {}
+        self._transmission_map: dict[str, Transmission] = {}
+        self._material_map: dict[str, Material] = {}
 
-        for x in self._links:
-            if x.name in self._link_map:
-                raise ValueError("Two links with name {} found".format(x.name))
-            self._link_map[x.name] = x
+        for link_obj in self._links:
+            if link_obj.name in self._link_map:
+                raise ValueError("Two links with name {} found".format(link_obj.name))
+            self._link_map[link_obj.name] = link_obj
 
-        for x in self._joints:
-            if x.name in self._joint_map:
-                raise ValueError("Two joints with name {} " "found".format(x.name))
-            self._joint_map[x.name] = x
+        for joint_obj in self._joints:
+            if joint_obj.name in self._joint_map:
+                raise ValueError("Two joints with name {} found".format(joint_obj.name))
+            self._joint_map[joint_obj.name] = joint_obj
 
-        for x in self._transmissions:
-            if x.name in self._transmission_map:
-                raise ValueError(
-                    "Two transmissions with name {} " "found".format(x.name)
-                )
-            self._transmission_map[x.name] = x
+        for trans_obj in self._transmissions:
+            if trans_obj.name in self._transmission_map:
+                raise ValueError("Two transmissions with name {} found".format(trans_obj.name))
+            self._transmission_map[trans_obj.name] = trans_obj
 
-        for x in self._materials:
-            if x.name in self._material_map:
-                raise ValueError("Two materials with name {} " "found".format(x.name))
-            self._material_map[x.name] = x
+        for mat_obj in self._materials:
+            if mat_obj.name in self._material_map:
+                raise ValueError("Two materials with name {} found".format(mat_obj.name))
+            self._material_map[mat_obj.name] = mat_obj
 
         # Synchronize materials between links and top-level set
         self._merge_materials()
@@ -137,105 +138,105 @@ class URDF(URDFTypeWithMesh):
         self._reverse_topo = list(reversed(list(nx.topological_sort(self._G))))
 
     @property
-    def name(self):
+    def name(self) -> str:
         """str : The name of the URDF."""
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: object) -> None:
         self._name = str(value)
 
     @property
-    def links(self):
+    def links(self) -> list[Link]:
         """list of :class:`.Link` : The links of the URDF.
 
         This returns a copy of the links array which cannot be edited
         directly. If you want to add or remove links, use
         the appropriate functions.
         """
-        return copy.copy(self._links)
+        return list(self._links)
 
     @property
-    def link_map(self):
+    def link_map(self) -> dict[str, Link]:
         """dict : Map from link names to the links themselves.
 
         This returns a copy of the link map which cannot be edited
         directly. If you want to add or remove links, use
         the appropriate functions.
         """
-        return copy.copy(self._link_map)
+        return dict(self._link_map)
 
     @property
-    def joints(self):
+    def joints(self) -> list[Joint]:
         """list of :class:`.Joint` : The links of the URDF.
 
         This returns a copy of the joints array which cannot be edited
         directly. If you want to add or remove joints, use
         the appropriate functions.
         """
-        return copy.copy(self._joints)
+        return list(self._joints)
 
     @property
-    def joint_map(self):
+    def joint_map(self) -> dict[str, Joint]:
         """dict : Map from joint names to the joints themselves.
 
         This returns a copy of the joint map which cannot be edited
         directly. If you want to add or remove joints, use
         the appropriate functions.
         """
-        return copy.copy(self._joint_map)
+        return dict(self._joint_map)
 
     @property
-    def transmissions(self):
+    def transmissions(self) -> list[Transmission]:
         """list of :class:`.Transmission` : The transmissions of the URDF.
 
         This returns a copy of the transmissions array which cannot be edited
         directly. If you want to add or remove transmissions, use
         the appropriate functions.
         """
-        return copy.copy(self._transmissions)
+        return list(self._transmissions)
 
     @property
-    def transmission_map(self):
+    def transmission_map(self) -> dict[str, Transmission]:
         """dict : Map from transmission names to the transmissions themselves.
 
         This returns a copy of the transmission map which cannot be edited
         directly. If you want to add or remove transmissions, use
         the appropriate functions.
         """
-        return copy.copy(self._transmission_map)
+        return dict(self._transmission_map)
 
     @property
-    def materials(self):
+    def materials(self) -> list[Material]:
         """list of :class:`.Material` : The materials of the URDF.
 
         This returns a copy of the materials array which cannot be edited
         directly. If you want to add or remove materials, use
         the appropriate functions.
         """
-        return copy.copy(self._materials)
+        return list(self._materials)
 
     @property
-    def material_map(self):
+    def material_map(self) -> dict[str, Material]:
         """dict : Map from material names to the materials themselves.
 
         This returns a copy of the material map which cannot be edited
         directly. If you want to add or remove materials, use
         the appropriate functions.
         """
-        return copy.copy(self._material_map)
+        return dict(self._material_map)
 
     @property
-    def other_xml(self):
+    def other_xml(self) -> bytes | str | None:
         """str : Any extra XML that belongs with the URDF."""
         return self._other_xml
 
     @other_xml.setter
-    def other_xml(self, value):
+    def other_xml(self, value: bytes | str | None) -> None:
         self._other_xml = value
 
     @property
-    def actuated_joints(self):
+    def actuated_joints(self) -> list[Joint]:
         """list of :class:`.Joint` : The joints that are independently
         actuated.
 
@@ -245,7 +246,7 @@ class URDF(URDFTypeWithMesh):
         return self._actuated_joints
 
     @property
-    def actuated_joint_names(self):
+    def actuated_joint_names(self) -> list[str]:
         """list of :class:`.Joint` : The names of joints that are independently
         actuated.
 
@@ -254,7 +255,9 @@ class URDF(URDFTypeWithMesh):
         """
         return [j.name for j in self._actuated_joints]
 
-    def cfg_to_vector(self, cfg):
+    def cfg_to_vector(
+        self, cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None
+    ) -> npt.NDArray[np.float64] | None:
         """Convert a configuration dictionary into a configuration vector.
 
         Parameters
@@ -284,7 +287,7 @@ class URDF(URDFTypeWithMesh):
             raise ValueError("Invalid configuration: {}".format(cfg))
 
     @property
-    def base_link(self):
+    def base_link(self) -> Link:
         """:class:`.Link`: The base link for the URDF.
 
         The base link is the single link that has no parent.
@@ -292,7 +295,7 @@ class URDF(URDFTypeWithMesh):
         return self._base_link
 
     @property
-    def end_links(self):
+    def end_links(self) -> list[Link]:
         """list of :class:`.Link`: The end links for the URDF.
 
         The end links are the links that have no children.
@@ -300,7 +303,7 @@ class URDF(URDFTypeWithMesh):
         return self._end_links
 
     @property
-    def joint_limit_cfgs(self):
+    def joint_limit_cfgs(self) -> tuple[dict[Joint, float], dict[Joint, float]]:
         """tuple of dict : The lower-bound and upper-bound joint configuration
         maps.
 
@@ -309,8 +312,8 @@ class URDF(URDFTypeWithMesh):
         The second map is the upper-bound map, which maps limited joints to
         their upper joint limits.
         """
-        lb = {}
-        ub = {}
+        lb: dict[Joint, float] = {}
+        ub: dict[Joint, float] = {}
         for joint in self.actuated_joints:
             if joint.limit is not None:
                 if joint.limit.lower is not None:
@@ -320,11 +323,11 @@ class URDF(URDFTypeWithMesh):
         return (lb, ub)
 
     @property
-    def joint_limits(self):
+    def joint_limits(self) -> npt.NDArray[np.float64]:
         """(n,2) float : A lower and upper limit for each joint."""
         limits = []
         for joint in self.actuated_joints:
-            limit = [-np.infty, np.infty]
+            limit = [-np.inf, np.inf]
             if joint.limit is not None:
                 if joint.limit.lower is not None:
                     limit[0] = joint.limit.lower
@@ -333,7 +336,17 @@ class URDF(URDFTypeWithMesh):
             limits.append(limit)
         return np.array(limits)
 
-    def link_fk(self, cfg=None, link=None, links=None, use_names=False):
+    def link_fk(
+        self,
+        cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None = None,
+        link: str | Link | None = None,
+        links: Sequence[str | Link] | None = None,
+        use_names: bool = False,
+    ) -> (
+        dict[Link, npt.NDArray[np.float64]]
+        | dict[str, npt.NDArray[np.float64]]
+        | npt.NDArray[np.float64]
+    ):
         """Computes the poses of the URDF's links via forward kinematics.
 
         Parameters
@@ -365,7 +378,7 @@ class URDF(URDFTypeWithMesh):
         joint_cfg = self._process_cfg(cfg)
 
         # Process link set
-        link_set = set()
+        link_set: set[Link] = set()
         if link is not None:
             if isinstance(link, str):
                 link_set.add(self._link_map[link])
@@ -378,19 +391,17 @@ class URDF(URDFTypeWithMesh):
                 elif isinstance(lnk, Link):
                     link_set.add(lnk)
                 else:
-                    raise TypeError(
-                        "Got object of type {} in links list".format(type(lnk))
-                    )
+                    raise TypeError("Got object of type {} in links list".format(type(lnk)))
         else:
-            link_set = self.links
+            link_set = set(self.links)
 
         # Compute forward kinematics in reverse topological order
-        fk = OrderedDict()
+        fk: "OrderedDict[Link, npt.NDArray[np.float64]]" = OrderedDict()
         for lnk in self._reverse_topo:
             if lnk not in link_set:
                 continue
             pose = np.eye(4, dtype=np.float64)
-            path = self._paths_to_base[lnk]
+            path = cast(list[Link], self._paths_to_base[lnk])
             for i in range(len(path) - 1):
                 child = path[i]
                 parent = path[i + 1]
@@ -464,9 +475,7 @@ class URDF(URDFTypeWithMesh):
                 elif isinstance(lnk, Link):
                     link_set.add(lnk)
                 else:
-                    raise TypeError(
-                        "Got object of type {} in links list".format(type(lnk))
-                    )
+                    raise TypeError("Got object of type {} in links list".format(type(lnk)))
         else:
             link_set = self.links
 
@@ -487,9 +496,7 @@ class URDF(URDFTypeWithMesh):
                     mimic_joint = self._joint_map[joint.mimic.joint]
                     if mimic_joint in joint_cfgs:
                         cfg_vals = joint_cfgs[mimic_joint]
-                        cfg_vals = (
-                            joint.mimic.multiplier * cfg_vals + joint.mimic.offset
-                        )
+                        cfg_vals = joint.mimic.multiplier * cfg_vals + joint.mimic.offset
                 elif joint in joint_cfgs:
                     cfg_vals = joint_cfgs[joint]
                 poses = np.matmul(joint.get_child_poses(cfg_vals, n_cfgs), poses)
@@ -508,7 +515,11 @@ class URDF(URDFTypeWithMesh):
             return {ell.name: fk[ell] for ell in fk}
         return fk
 
-    def visual_geometry_fk(self, cfg=None, links=None):
+    def visual_geometry_fk(
+        self,
+        cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None = None,
+        links: Sequence[str | Link] | None = None,
+    ) -> dict:
         """Computes the poses of the URDF's visual geometries using fk.
 
         Parameters
@@ -531,7 +542,7 @@ class URDF(URDFTypeWithMesh):
             elements of the specified links to the 4x4 homogenous transform
             matrices that position them relative to the base link's frame.
         """
-        lfk = self.link_fk(cfg=cfg, links=links)
+        lfk = cast(dict[Link, npt.NDArray[np.float64]], self.link_fk(cfg=cfg, links=links))
 
         fk = OrderedDict()
         for link in lfk:
@@ -539,7 +550,16 @@ class URDF(URDFTypeWithMesh):
                 fk[visual.geometry] = lfk[link].dot(visual.origin)
         return fk
 
-    def visual_geometry_fk_batch(self, cfgs=None, links=None):
+    def visual_geometry_fk_batch(
+        self,
+        cfgs: (
+            Mapping[str, Sequence[float]]
+            | Sequence[Mapping[str, float] | None]
+            | npt.ArrayLike
+            | None
+        ) = None,
+        links: Sequence[str | Link] | None = None,
+    ) -> dict:
         """Computes the poses of the URDF's visual geometries using fk.
 
         Parameters
@@ -561,7 +581,7 @@ class URDF(URDFTypeWithMesh):
             elements of the specified links to the 4x4 homogenous transform
             matrices that position them relative to the base link's frame.
         """
-        lfk = self.link_fk_batch(cfgs=cfgs, links=links)
+        lfk: dict[Link, npt.NDArray[np.float64]] = self.link_fk_batch(cfgs=cfgs, links=links)
 
         fk = OrderedDict()
         for link in lfk:
@@ -569,7 +589,11 @@ class URDF(URDFTypeWithMesh):
                 fk[visual.geometry] = np.matmul(lfk[link], visual.origin)
         return fk
 
-    def visual_trimesh_fk(self, cfg=None, links=None):
+    def visual_trimesh_fk(
+        self,
+        cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None = None,
+        links: Sequence[str | Link] | None = None,
+    ) -> dict[trimesh.Trimesh, npt.NDArray[np.float64]]:
         """Computes the poses of the URDF's visual trimeshes using fk.
 
         Parameters
@@ -593,7 +617,7 @@ class URDF(URDFTypeWithMesh):
             4x4 homogenous transform matrices that position them relative
             to the base link's frame.
         """
-        lfk = self.link_fk(cfg=cfg, links=links)
+        lfk = cast(dict[Link, npt.NDArray[np.float64]], self.link_fk(cfg=cfg, links=links))
         self.mesh_name_list = []
         fk = OrderedDict()
         for link in lfk:
@@ -605,21 +629,15 @@ class URDF(URDFTypeWithMesh):
                         if visual.geometry.mesh.scale is not None:
                             if (
                                 np.sum(
-                                    visual.geometry.mesh.scale
-                                    != abs(visual.geometry.mesh.scale)
+                                    visual.geometry.mesh.scale != abs(visual.geometry.mesh.scale)
                                 )
                                 > 0
                             ):
-                                if (
-                                    visual.geometry.mesh.filename
-                                    not in self.mesh_need_to_mirror
-                                ):
+                                if visual.geometry.mesh.filename not in self.mesh_need_to_mirror:
                                     print(
                                         f"[urchin]: {visual.geometry.mesh.filename} needs to mirror"
                                     )
-                                    self.mesh_need_to_mirror.append(
-                                        visual.geometry.mesh.filename
-                                    )
+                                    self.mesh_need_to_mirror.append(visual.geometry.mesh.filename)
                                     mesh_vertices = np.copy(mesh.vertices)
                                     mesh_faces = np.copy(mesh.faces)
                                     mesh_faces_new = np.hstack(
@@ -630,12 +648,8 @@ class URDF(URDFTypeWithMesh):
                                         ]
                                     )
                                     mesh = trimesh.Trimesh()
-                                    mirror_axis = np.where(
-                                        visual.geometry.mesh.scale < 0
-                                    )[0][0]
-                                    mesh_vertices[:, mirror_axis] = -mesh_vertices[
-                                        :, mirror_axis
-                                    ]
+                                    mirror_axis = np.where(visual.geometry.mesh.scale < 0)[0][0]
+                                    mesh_vertices[:, mirror_axis] = -mesh_vertices[:, mirror_axis]
                                     mesh.vertices = mesh_vertices
                                     mesh.faces = mesh_faces_new
                                     visual.geometry.meshes[i] = mesh
@@ -649,7 +663,16 @@ class URDF(URDFTypeWithMesh):
                     fk[mesh] = pose
         return fk
 
-    def visual_trimesh_fk_batch(self, cfgs=None, links=None):
+    def visual_trimesh_fk_batch(
+        self,
+        cfgs: (
+            Mapping[str, Sequence[float]]
+            | Sequence[Mapping[str, float] | None]
+            | npt.ArrayLike
+            | None
+        ) = None,
+        links: Sequence[str | Link] | None = None,
+    ) -> dict[trimesh.Trimesh, npt.NDArray[np.float64]]:
         """Computes the poses of the URDF's visual trimeshes using fk.
 
         Parameters
@@ -840,20 +863,20 @@ class URDF(URDFTypeWithMesh):
         You can run this without specifying a ``cfg_trajectory`` to view
         the full articulation of the URDF
 
-        >>> robot = URDF.load('ur5.urdf')
+        >>> robot = URDF.load("ur5.urdf")
         >>> robot.animate()
 
         .. image:: /_static/ur5.gif
 
-        >>> ct = {'shoulder_pan_joint': [0.0, 2 * np.pi]}
+        >>> ct = {"shoulder_pan_joint": [0.0, 2 * np.pi]}
         >>> robot.animate(cfg_trajectory=ct)
 
         .. image:: /_static/ur5_shoulder.gif
 
         >>> ct = {
-        ...    'shoulder_pan_joint' : [-np.pi / 4, np.pi / 4],
-        ...    'shoulder_lift_joint' : [0.0, -np.pi / 2.0],
-        ...    'elbow_joint' : [0.0, np.pi / 2.0]
+        ...     "shoulder_pan_joint": [-np.pi / 4, np.pi / 4],
+        ...     "shoulder_lift_joint": [0.0, -np.pi / 2.0],
+        ...     "elbow_joint": [0.0, np.pi / 2.0],
         ... }
         >>> robot.animate(cfg_trajectory=ct)
 
@@ -893,9 +916,7 @@ class URDF(URDFTypeWithMesh):
                 raise ValueError("Cfg trajectory must have entry for each joint")
             ct_np = {j: ct[:, i] for i, j in enumerate(self.actuated_joints)}
         else:
-            raise TypeError(
-                "Invalid type for cfg_trajectory: {}".format(type(cfg_trajectory))
-            )
+            raise TypeError("Invalid type for cfg_trajectory: {}".format(type(cfg_trajectory)))
 
         # If there isn't a trajectory to render, just show the model and exit
         if len(ct_np) == 0 or traj_len < 2:
@@ -919,10 +940,7 @@ class URDF(URDFTypeWithMesh):
         # Create the new interpolated trajectory
         new_ct = {}
         for k in ct_np:
-            new_ct[k] = (
-                alphas * ct_np[k][right_inds - 1]
-                + (1.0 - alphas) * ct_np[k][right_inds]
-            )
+            new_ct[k] = alphas * ct_np[k][right_inds - 1] + (1.0 - alphas) * ct_np[k][right_inds]
 
         # Create the scene
         if use_collision:
@@ -965,7 +983,11 @@ class URDF(URDFTypeWithMesh):
 
             time.sleep(1.0 / fps)
 
-    def show(self, cfg=None, use_collision=False):
+    def show(
+        self,
+        cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None = None,
+        use_collision: bool = False,
+    ) -> None:
         """Visualize the URDF in a given configuration.
 
         Parameters
@@ -994,7 +1016,13 @@ class URDF(URDFTypeWithMesh):
             scene.add(mesh, pose=pose)
         pyribbit.Viewer(scene, use_raymond_lighting=True)
 
-    def copy(self, name=None, prefix="", scale=None, collision_only=False):
+    def copy(
+        self,
+        name: str | None = None,
+        prefix: str = "",
+        scale: float | Sequence[float] | None = None,
+        collision_only: bool = False,
+    ) -> "URDF":
         """Make a deep copy of the URDF.
 
         Parameters
@@ -1018,11 +1046,11 @@ class URDF(URDFTypeWithMesh):
             links=[v.copy(prefix, scale, collision_only) for v in self.links],
             joints=[v.copy(prefix, scale) for v in self.joints],
             transmissions=[v.copy(prefix, scale) for v in self.transmissions],
-            materials=[v.copy(prefix, scale) for v in self.materials],
+            materials=[v.copy(prefix) for v in self.materials],
             other_xml=self.other_xml,
         )
 
-    def save(self, file_obj):
+    def save(self, file_obj: str | IO[bytes] | IO[str]) -> None:
         """Save this URDF to a file.
 
         Parameters
@@ -1035,8 +1063,8 @@ class URDF(URDFTypeWithMesh):
 
         Returns
         -------
-        urdf : :class:`.URDF`
-            The parsed URDF.
+        None
+            Nothing. Writes the URDF XML to ``file_obj``.
         """
         if isinstance(file_obj, str):
             path, _ = os.path.split(file_obj)
@@ -1047,7 +1075,14 @@ class URDF(URDFTypeWithMesh):
         tree = ET.ElementTree(node)
         tree.write(file_obj, pretty_print=True, xml_declaration=True, encoding="utf-8")
 
-    def join(self, other, link, origin=None, name=None, prefix=""):
+    def join(
+        self,
+        other: "URDF",
+        link: Link | str,
+        origin: npt.ArrayLike | None = None,
+        name: str | None = None,
+        prefix: str = "",
+    ) -> "URDF":
         """Join another URDF to this one by rigidly fixturing the two at a link.
 
         Parameters
@@ -1111,7 +1146,7 @@ class URDF(URDFTypeWithMesh):
             materials=materials,
         )
 
-    def _merge_materials(self):
+    def _merge_materials(self) -> None:
         """Merge the top-level material set with the link materials."""
         for link in self.links:
             for v in link.visuals:
@@ -1124,7 +1159,7 @@ class URDF(URDFTypeWithMesh):
                     self._material_map[v.material.name] = v.material
 
     @classmethod
-    def load(cls, file_obj, lazy_load_meshes=False):
+    def load(cls, file_obj: str | IO[bytes] | IO[str], lazy_load_meshes: bool = False) -> "URDF":
         """Load a URDF from a file.
 
         Parameters
@@ -1177,20 +1212,14 @@ class URDF(URDFTypeWithMesh):
         for joint in self.joints:
             if joint.parent not in self._link_map:
                 raise ValueError(
-                    "Joint {} has invalid parent link name {}".format(
-                        joint.name, joint.parent
-                    )
+                    "Joint {} has invalid parent link name {}".format(joint.name, joint.parent)
                 )
             if joint.child not in self._link_map:
                 raise ValueError(
-                    "Joint {} has invalid child link name {}".format(
-                        joint.name, joint.child
-                    )
+                    "Joint {} has invalid child link name {}".format(joint.name, joint.child)
                 )
             if joint.child == joint.parent:
-                raise ValueError(
-                    "Joint {} has matching parent and child".format(joint.name)
-                )
+                raise ValueError("Joint {} has matching parent and child".format(joint.name))
             if joint.mimic is not None:
                 if joint.mimic.joint not in self._joint_map:
                     raise ValueError(
@@ -1199,16 +1228,14 @@ class URDF(URDFTypeWithMesh):
                         )
                     )
                 if joint.mimic.joint == joint.name:
-                    raise ValueError(
-                        "Joint {} set up to mimic itself".format(joint.mimic.joint)
-                    )
+                    raise ValueError("Joint {} set up to mimic itself".format(joint.mimic.joint))
             elif joint.joint_type != "fixed":
                 actuated_joints.append(joint)
 
         # Do a depth-first search
         return actuated_joints
 
-    def _sort_joints(self, joints):
+    def _sort_joints(self, joints: list[Joint]) -> list[Joint]:
         """Sort joints by ascending distance from the base link (topologically).
 
         Parameters
@@ -1228,7 +1255,7 @@ class URDF(URDFTypeWithMesh):
         order = np.argsort(lens)
         return np.array(joints)[order].tolist()
 
-    def _validate_transmissions(self):
+    def _validate_transmissions(self) -> None:
         """Raise an exception of any transmissions are invalidly specified.
 
         Checks for the following:
@@ -1239,11 +1266,10 @@ class URDF(URDFTypeWithMesh):
             for joint in t.joints:
                 if joint.name not in self._joint_map:
                     raise ValueError(
-                        "Transmission {} has invalid joint name "
-                        "{}".format(t.name, joint.name)
+                        "Transmission {} has invalid joint name {}".format(t.name, joint.name)
                     )
 
-    def _validate_graph(self):
+    def _validate_graph(self) -> tuple[Link, list[Link]]:
         """Raise an exception if the link-joint structure is invalid.
 
         Checks for the following:
@@ -1268,7 +1294,7 @@ class URDF(URDFTypeWithMesh):
                 for n in cc:
                     cluster.append(n.name)
                 link_clusters.append(cluster)
-            message = "Links are not all connected. " "Connected components are:"
+            message = "Links are not all connected. Connected components are:"
             for lc in link_clusters:
                 message += "\n\t"
                 for n in lc:
@@ -1280,27 +1306,29 @@ class URDF(URDFTypeWithMesh):
             raise ValueError("There are cycles in the link graph")
 
         # Ensure that there is exactly one base link, which has no parent
-        base_link = None
-        end_links = []
+        base_link: Link | None = None
+        end_links: list[Link] = []
         for n in self._G:
             if len(nx.descendants(self._G, n)) == 0:
                 if base_link is None:
                     base_link = n
                 else:
                     raise ValueError(
-                        "Links {} and {} are both base links!".format(
-                            n.name, base_link.name
-                        )
+                        "Links {} and {} are both base links!".format(n.name, base_link.name)
                     )
             if len(nx.ancestors(self._G, n)) == 0:
                 end_links.append(n)
+        if base_link is None:
+            raise ValueError("URDF has no base link")
         return base_link, end_links
 
-    def _process_cfg(self, cfg):
+    def _process_cfg(
+        self, cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None
+    ) -> dict[Joint, float]:
         """Process a joint configuration spec into a dictionary mapping
         joints to configuration values.
         """
-        joint_cfg = {}
+        joint_cfg: dict[Joint, float] = {}
         if cfg is None:
             return joint_cfg
         if isinstance(cfg, dict):
@@ -1312,8 +1340,7 @@ class URDF(URDFTypeWithMesh):
         elif isinstance(cfg, (list, tuple, np.ndarray)):
             if len(cfg) != len(self.actuated_joints):
                 raise ValueError(
-                    "Cfg must have same length as actuated joints "
-                    "if specified as a numerical array"
+                    "Cfg must have same length as actuated joints if specified as a numerical array"
                 )
             for joint, value in zip(self.actuated_joints, cfg):
                 joint_cfg[joint] = value
@@ -1321,14 +1348,24 @@ class URDF(URDFTypeWithMesh):
             raise TypeError("Invalid type for config")
         return joint_cfg
 
-    def _process_cfgs(self, cfgs):
+    def _process_cfgs(
+        self,
+        cfgs: (
+            Mapping[str, Sequence[float]]
+            | Sequence[Mapping[str, float] | None]
+            | npt.ArrayLike
+            | None
+        ),
+    ) -> tuple[dict[Joint, Sequence[float] | npt.NDArray[np.float64] | None], int | None]:
         """Process a list of joint configurations into a dictionary mapping joints to
         configuration values.
 
         This should result in a dict mapping each joint to a list of cfg values, one
         per joint.
         """
-        joint_cfg = {j: [] for j in self.actuated_joints}
+        joint_cfg: dict[Joint, list[float] | npt.NDArray[np.float64] | None] = {
+            j: [] for j in self.actuated_joints
+        }
         n_cfgs = None
         if isinstance(cfgs, dict):
             for joint in cfgs:
@@ -1344,41 +1381,68 @@ class URDF(URDFTypeWithMesh):
                 for cfg in cfgs:
                     for joint in cfg:
                         if isinstance(joint, str):
-                            joint_cfg[self._joint_map[joint]].append(cfg[joint])
+                            v = joint_cfg[self._joint_map[joint]]
+                            assert isinstance(v, list)
+                            v.append(cfg[joint])
+                            joint_cfg[self._joint_map[joint]] = v
                         else:
-                            joint_cfg[joint].append(cfg[joint])
+                            v2 = joint_cfg[joint]
+                            assert isinstance(v2, list)
+                            v2.append(cfg[joint])
+                            joint_cfg[joint] = v2
             elif cfgs[0] is None:
                 pass
             else:
                 cfgs = np.asanyarray(cfgs, dtype=np.float64)
                 for i, j in enumerate(self.actuated_joints):
-                    joint_cfg[j] = cfgs[:, i]
+                    joint_cfg[j] = cast(npt.NDArray[np.float64], cfgs[:, i])
         else:
             raise ValueError("Incorrectly formatted config array")
 
         for j in joint_cfg:
-            if len(joint_cfg[j]) == 0:
-                joint_cfg[j] = None
-            elif len(joint_cfg[j]) != n_cfgs:
-                raise ValueError("Inconsistent number of configurations for joints")
+            if isinstance(joint_cfg[j], list):
+                from typing import cast as _cast
 
-        return joint_cfg, n_cfgs
+                if len(_cast(list[float], joint_cfg[j])) == 0:
+                    joint_cfg[j] = None
+                elif n_cfgs is not None and len(_cast(list[float], joint_cfg[j])) != n_cfgs:
+                    raise ValueError("Inconsistent number of configurations for joints")
+
+        from typing import cast as _cast
+
+        return _cast(
+            dict[Joint, Sequence[float] | npt.NDArray[np.float64] | None], joint_cfg
+        ), n_cfgs
 
     @classmethod
-    def _from_xml(cls, node, path, lazy_load_meshes):
-        valid_tags = set(["joint", "link", "transmission", "material"])
-        kwargs = cls._parse(node, path, lazy_load_meshes)
+    def _from_xml(
+        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+    ) -> "URDF":
+        # Explicit parse of URDF components for typing clarity
+        name = str(node.attrib.get("name", ""))
+        links = [Link._from_xml(n, path, lazy_load_meshes) for n in node.findall("link")]
+        joints = [Joint._from_xml(n, path) for n in node.findall("joint")]
+        transmissions = [Transmission._from_xml(n, path) for n in node.findall("transmission")]
+        materials = [Material._from_xml(n, path) for n in node.findall("material")]
 
+        # Capture any extra XML
+        valid_tags = {"joint", "link", "transmission", "material"}
         extra_xml_node = ET.Element("extra")
         for child in node:
             if child.tag not in valid_tags:
                 extra_xml_node.append(child)
+        other_xml = ET.tostring(extra_xml_node)
 
-        data = ET.tostring(extra_xml_node)
-        kwargs["other_xml"] = data
-        return cls(**kwargs)
+        return cls(
+            name=name,
+            links=links,
+            joints=joints,
+            transmissions=transmissions,
+            materials=materials,
+            other_xml=other_xml,
+        )
 
-    def _to_xml(self, parent, path):
+    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
         node = self._unparse(path)
         if self.other_xml:
             extra_tree = ET.fromstring(self.other_xml)

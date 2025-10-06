@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Dict, Type, cast
+
 import numpy as np
 from lxml import etree as ET
 
@@ -25,19 +29,17 @@ class URDFType:
       containing this type of object.
     """
 
-    _ATTRIBS: dict[str, tuple[type, bool]] = (
-        {}
-    )  # Map from attrib name to (type, required)
-    _ELEMENTS: dict[str, tuple[type, bool, bool]] = (
-        {}
-    )  # Map from element name to (type, required, multiple)
+    _ATTRIBS: dict[str, tuple[type, bool]] = {}  # Map from attrib name to (type, required)
+    _ELEMENTS: dict[
+        str, tuple[Type["URDFType"], bool, bool]
+    ] = {}  # Map from element name to (type, required, multiple)
     _TAG: str = ""  # XML tag for this element
 
     def __init__(self):
         pass
 
     @classmethod
-    def _parse_attrib(cls, val_type, val):
+    def _parse_attrib(cls, val_type: type, val: str) -> object:
         """Parse an XML attribute into a python value.
 
         Parameters
@@ -53,13 +55,13 @@ class URDFType:
             The parsed attribute.
         """
         if val_type == np.ndarray:
-            val = np.fromstring(val, sep=" ")
+            parsed: object = np.fromstring(val, sep=" ")
         else:
-            val = val_type(val)
-        return val
+            parsed = val_type(val)
+        return parsed
 
     @classmethod
-    def _parse_simple_attribs(cls, node):
+    def _parse_simple_attribs(cls, node: ET._Element) -> Dict[str, object]:
         """Parse all attributes in the _ATTRIBS array for this class.
 
         Parameters
@@ -74,7 +76,7 @@ class URDFType:
             required and is not present, that attribute's name will map to
             ``None``.
         """
-        kwargs = {}
+        kwargs: Dict[str, object] = {}
         for a in cls._ATTRIBS:
             t, r = cls._ATTRIBS[a]  # t = type, r = required (bool)
             if r:
@@ -82,8 +84,9 @@ class URDFType:
                     v = cls._parse_attrib(t, node.attrib[a])
                 except Exception:
                     raise ValueError(
-                        "Missing required attribute {} when parsing an object "
-                        "of type {}".format(a, cls.__name__)
+                        "Missing required attribute {} when parsing an object of type {}".format(
+                            a, cls.__name__
+                        )
                     )
             else:
                 v = None
@@ -93,7 +96,9 @@ class URDFType:
         return kwargs
 
     @classmethod
-    def _parse_simple_elements(cls, node, path):
+    def _parse_simple_elements(
+        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+    ) -> Dict[str, object]:
         """Parse all elements in the _ELEMENTS array from the children of
         this node.
 
@@ -114,7 +119,7 @@ class URDFType:
             Map from element names to the :class:`URDFType` subclass (or list,
             if ``multiple`` was set) created for that element.
         """
-        kwargs = {}
+        kwargs: Dict[str, object] = {}
         for a in cls._ELEMENTS:
             t, r, m = cls._ELEMENTS[a]
             if not m:
@@ -133,7 +138,9 @@ class URDFType:
         return kwargs
 
     @classmethod
-    def _parse(cls, node, path):
+    def _parse(
+        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+    ) -> Dict[str, object]:
         """Parse all elements and attributes in the _ELEMENTS and _ATTRIBS
         arrays for a node.
 
@@ -151,12 +158,12 @@ class URDFType:
             Map from names to Python classes created from the attributes
             and elements in the class arrays.
         """
-        kwargs = cls._parse_simple_attribs(node)
-        kwargs.update(cls._parse_simple_elements(node, path))
+        kwargs: Dict[str, object] = cls._parse_simple_attribs(node)
+        kwargs.update(cls._parse_simple_elements(node, path, lazy_load_meshes))
         return kwargs
 
     @classmethod
-    def _from_xml(cls, node, path):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
         """Create an instance of this class from an XML node.
 
         Parameters
@@ -174,7 +181,7 @@ class URDFType:
         """
         return cls(**cls._parse(node, path))
 
-    def _unparse_attrib(self, val_type, val):
+    def _unparse_attrib(self, val_type: type, val: object) -> str:
         """Convert a Python value into a string for storage in an
         XML attribute.
 
@@ -191,12 +198,12 @@ class URDFType:
             The attribute string.
         """
         if val_type == np.ndarray:
-            val = np.array2string(val)[1:-1]
+            val = np.array2string(cast(np.ndarray, val))[1:-1]
         else:
             val = str(val)
         return val
 
-    def _unparse_simple_attribs(self, node):
+    def _unparse_simple_attribs(self, node: ET._Element) -> None:
         """Convert all Python types from the _ATTRIBS array back into attributes
         for an XML node.
 
@@ -211,7 +218,7 @@ class URDFType:
             if r or v is not None:
                 node.attrib[a] = self._unparse_attrib(t, v)
 
-    def _unparse_simple_elements(self, node, path):
+    def _unparse_simple_elements(self, node: ET._Element, path: str) -> None:
         """Unparse all Python types from the _ELEMENTS array back into child
         nodes of an XML node.
 
@@ -228,14 +235,14 @@ class URDFType:
             t, r, m = self._ELEMENTS[a]
             v = getattr(self, a, None)
             if not m:
-                if r or v is not None:
+                if v is not None:
                     node.append(v._to_xml(node, path))
             else:
-                vs = v
+                vs = v or []
                 for v in vs:
                     node.append(v._to_xml(node, path))
 
-    def _unparse(self, path):
+    def _unparse(self, path: str) -> ET._Element:
         """Create a node for this object and unparse all elements and
         attributes in the class arrays.
 
@@ -255,7 +262,7 @@ class URDFType:
         self._unparse_simple_elements(node, path)
         return node
 
-    def _to_xml(self, parent, path):
+    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
         """Create and return an XML node for this object.
 
         Parameters
@@ -278,7 +285,9 @@ class URDFType:
 
 class URDFTypeWithMesh(URDFType):
     @classmethod
-    def _parse_simple_elements(cls, node, path, lazy_load_meshes):
+    def _parse_simple_elements(
+        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+    ) -> Dict[str, object]:
         """Parse all elements in the _ELEMENTS array from the children of
         this node.
 
@@ -299,7 +308,7 @@ class URDFTypeWithMesh(URDFType):
             Map from element names to the :class:`URDFType` subclass (or list,
             if ``multiple`` was set) created for that element.
         """
-        kwargs = {}
+        kwargs: Dict[str, object] = {}
         for a in cls._ELEMENTS:
             t, r, m = cls._ELEMENTS[a]
             if not m:
@@ -324,7 +333,9 @@ class URDFTypeWithMesh(URDFType):
         return kwargs
 
     @classmethod
-    def _parse(cls, node, path, lazy_load_meshes):
+    def _parse(
+        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+    ) -> Dict[str, object]:
         """Parse all elements and attributes in the _ELEMENTS and _ATTRIBS
         arrays for a node.
 
@@ -344,12 +355,12 @@ class URDFTypeWithMesh(URDFType):
             Map from names to Python classes created from the attributes
             and elements in the class arrays.
         """
-        kwargs = cls._parse_simple_attribs(node)
+        kwargs: Dict[str, object] = cls._parse_simple_attribs(node)
         kwargs.update(cls._parse_simple_elements(node, path, lazy_load_meshes))
         return kwargs
 
     @classmethod
-    def _from_xml(cls, node, path, lazy_load_meshes):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
         """Create an instance of this class from an XML node.
 
         Parameters

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import numpy as np
+import numpy.typing as npt
 import PIL
 from lxml import etree as ET
 
@@ -14,62 +17,61 @@ class Texture(URDFType):
     filename : str
         The path to the image that contains this texture. This can be
         relative to the top-level URDF or an absolute path.
-    image : :class:`PIL.Image.Image`, optional
-        The image for the texture.
-        If not specified, it is loaded automatically from the filename.
+    image : :class:`PIL.Image.Image` or ``numpy.ndarray`` or ``str``, optional
+        The image for the texture. If a ``str`` path or a numpy array is
+        provided, it is converted to a PIL image. If not specified, it is
+        loaded automatically from ``filename``.
     """
 
     _ATTRIBS = {"filename": (str, True)}
     _TAG = "texture"
 
-    def __init__(self, filename, image=None):
+    def __init__(self, filename: str, image: PIL.Image.Image | str | np.ndarray | None = None):
         if image is None:
-            image = PIL.image.open(filename)
+            image = PIL.Image.open(filename)
         self.filename = filename
         self.image = image
 
     @property
-    def filename(self):
+    def filename(self) -> str:
         """str : Path to the image for this texture."""
         return self._filename
 
     @filename.setter
-    def filename(self, value):
+    def filename(self, value: object) -> None:
         self._filename = str(value)
 
     @property
-    def image(self):
+    def image(self) -> PIL.Image.Image:
         """:class:`PIL.Image.Image` : The image for this texture."""
         return self._image
 
     @image.setter
-    def image(self, value):
+    def image(self, value: PIL.Image.Image | str | np.ndarray) -> None:
         if isinstance(value, str):
             value = PIL.Image.open(value)
         if isinstance(value, np.ndarray):
             value = PIL.Image.fromarray(value)
         elif not isinstance(value, PIL.Image.Image):
-            raise ValueError("Texture only supports numpy arrays " "or PIL images")
+            raise ValueError("Texture only supports numpy arrays or PIL images")
         self._image = value
 
     @classmethod
-    def _from_xml(cls, node, path):
-        kwargs = cls._parse(node, path)
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+        # Explicitly parse fields for typing clarity
+        filename = str(node.attrib["filename"]) if "filename" in node.attrib else ""
+        fn = get_filename(path, filename)
+        image = PIL.Image.open(fn)
+        return cls(filename=filename, image=image)
 
-        # Load image
-        fn = get_filename(path, kwargs["filename"])
-        kwargs["image"] = PIL.Image.open(fn)
-
-        return cls(**kwargs)
-
-    def _to_xml(self, parent, path):
+    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
         # Save the image
         filepath = get_filename(path, self.filename, makedirs=True)
         self.image.save(filepath)
 
         return self._unparse(path)
 
-    def copy(self, prefix="", scale=None):
+    def copy(self, prefix: str = "", scale: float | np.ndarray | None = None) -> "Texture":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -105,27 +107,32 @@ class Material(URDFType):
     }
     _TAG = "material"
 
-    def __init__(self, name, color=None, texture=None):
+    def __init__(
+        self,
+        name: str,
+        color: npt.ArrayLike | None = None,
+        texture: Texture | str | None = None,
+    ):
         self.name = name
         self.color = color
         self.texture = texture
 
     @property
-    def name(self):
+    def name(self) -> str:
         """str : The name of the material."""
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value: object) -> None:
         self._name = str(value)
 
     @property
-    def color(self):
+    def color(self) -> np.ndarray | None:
         """(4,) float : The RGBA color of the material, in the range [0,1]."""
         return self._color
 
     @color.setter
-    def color(self, value):
+    def color(self, value: npt.ArrayLike | None) -> None:
         if value is not None:
             value = np.asanyarray(value).astype(float)
             value = np.clip(value, 0.0, 1.0)
@@ -134,35 +141,32 @@ class Material(URDFType):
         self._color = value
 
     @property
-    def texture(self):
+    def texture(self) -> Texture | None:
         """:class:`.Texture` : The texture for the material."""
         return self._texture
 
     @texture.setter
-    def texture(self, value):
+    def texture(self, value: Texture | str | None) -> None:
         if value is not None:
             if isinstance(value, str):
                 image = PIL.Image.open(value)
                 value = Texture(filename=value, image=image)
             elif not isinstance(value, Texture):
-                raise ValueError(
-                    "Invalid type for texture -- expect path to " "image or Texture"
-                )
+                raise ValueError("Invalid type for texture -- expect path to image or Texture")
         self._texture = value
 
     @classmethod
-    def _from_xml(cls, node, path):
-        kwargs = cls._parse(node, path)
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+        name = str(node.attrib["name"]) if "name" in node.attrib else ""
+        color_arr = None
+        color_node = node.find("color")
+        if color_node is not None and "rgba" in color_node.attrib:
+            color_arr = np.fromstring(color_node.attrib["rgba"], sep=" ", dtype=np.float64)
+        texture_node = node.find("texture")
+        texture = Texture._from_xml(texture_node, path) if texture_node is not None else None
+        return cls(name=name, color=color_arr, texture=texture)
 
-        # Extract the color -- it's weirdly an attribute of a subelement
-        color = node.find("color")
-        if color is not None:
-            color = np.fromstring(color.attrib["rgba"], sep=" ", dtype=np.float64)
-        kwargs["color"] = color
-
-        return cls(**kwargs)
-
-    def _to_xml(self, parent, path):
+    def _to_xml(self, parent: ET._Element, path: str) -> ET._Element:
         # Simplify materials by collecting them at the top level.
 
         # For top-level elements, save the full material specification
@@ -182,7 +186,7 @@ class Material(URDFType):
                 node.append(color)
         return node
 
-    def copy(self, prefix="", scale=None):
+    def copy(self, prefix: str = "", scale: float | np.ndarray | None = None) -> "Material":
         """Create a deep copy of the material with the prefix applied to all names.
 
         Parameters
