@@ -290,7 +290,7 @@ class URDF(URDFTypeWithMesh):
                     vec[i] = cfg[jn]
             return vec
         else:
-            raise ValueError("Invalid configuration: {}".format(cfg))
+            raise ValueError(f"Invalid configuration: {cfg!r}")
 
     @property
     def base_link(self) -> Link:

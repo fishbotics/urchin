@@ -1072,7 +1072,7 @@ class Link(URDFTypeWithMesh):
                 cm.apply_transform(sm)
                 cmm = np.eye(4)
                 cmm[:3, 3] = cm.center_mass
-                inertial = Inertial(mass=cm.mass, inertia=cm.moment_inertia, origin=cmm)
+                inertial = Inertial(mass=float(cm.mass), inertia=cm.moment_inertia, origin=cmm)
 
         visuals = None
         if not collision_only:
