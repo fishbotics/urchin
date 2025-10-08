@@ -382,7 +382,7 @@ class JointMimic(URDFType):
         return self._joint
 
     @joint.setter
-    def joint(self, value: object) -> None:
+    def joint(self, value: str) -> None:
         self._joint = str(value)
 
     @property

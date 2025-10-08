@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from os import PathLike, fspath
+
 import numpy as np
 import numpy.typing as npt
 import PIL
@@ -38,8 +40,8 @@ class Texture(URDFType):
         return self._filename
 
     @filename.setter
-    def filename(self, value: object) -> None:
-        self._filename = str(value)
+    def filename(self, value: str | PathLike[str]) -> None:
+        self._filename = fspath(value)
 
     @property
     def image(self) -> PIL.Image.Image:
@@ -123,7 +125,7 @@ class Material(URDFType):
         return self._name
 
     @name.setter
-    def name(self, value: object) -> None:
+    def name(self, value: str) -> None:
         self._name = str(value)
 
     @property

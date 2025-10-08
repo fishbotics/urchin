@@ -41,7 +41,7 @@ class Actuator(URDFType):
         return self._name
 
     @name.setter
-    def name(self, value: object) -> None:
+    def name(self, value: str) -> None:
         self._name = str(value)
 
     @property
@@ -138,7 +138,7 @@ class TransmissionJoint(URDFType):
         return self._name
 
     @name.setter
-    def name(self, value: object) -> None:
+    def name(self, value: str) -> None:
         self._name = str(value)
 
     @property
@@ -239,7 +239,7 @@ class Transmission(URDFType):
         return self._name
 
     @name.setter
-    def name(self, value: object) -> None:
+    def name(self, value: str) -> None:
         self._name = str(value)
 
     @property
@@ -248,7 +248,7 @@ class Transmission(URDFType):
         return self._trans_type
 
     @trans_type.setter
-    def trans_type(self, value: object) -> None:
+    def trans_type(self, value: str) -> None:
         self._trans_type = str(value)
 
     @property

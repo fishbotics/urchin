@@ -143,7 +143,7 @@ class URDF(URDFTypeWithMesh):
         return self._name
 
     @name.setter
-    def name(self, value: object) -> None:
+    def name(self, value: str) -> None:
         self._name = str(value)
 
     @property

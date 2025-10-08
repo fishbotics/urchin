@@ -378,8 +378,9 @@ class Mesh(URDFTypeWithMesh):
         # Export the meshes as a single file
         if self._meshes is not None:
             meshes_list = self.meshes or []
+            export_obj: trimesh.Trimesh | trimesh.Scene | list[trimesh.Trimesh]
             if len(meshes_list) == 1:
-                export_obj: object = meshes_list[0]
+                export_obj = meshes_list[0]
             elif os.path.splitext(fn)[1] == ".glb":
                 export_obj = trimesh.scene.Scene(geometry=meshes_list)
             else:
@@ -946,7 +947,7 @@ class Link(URDFTypeWithMesh):
         return self._name
 
     @name.setter
-    def name(self, value: object) -> None:
+    def name(self, value: str) -> None:
         self._name = str(value)
 
     @property
