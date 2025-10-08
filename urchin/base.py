@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Type, TypeVar, Union, cast
+from typing import Optional, Type, TypeVar, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -104,7 +104,7 @@ class URDFType:
 
     @classmethod
     def _parse_simple_elements(
-        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
     ) -> ParsedElementDict:
         """Parse all elements in the _ELEMENTS array from the children of
         this node.
@@ -154,7 +154,7 @@ class URDFType:
 
     @classmethod
     def _parse(
-        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
     ) -> ParsedValueDict:
         """Parse all elements and attributes in the _ELEMENTS and _ATTRIBS
         arrays for a node.
@@ -180,7 +180,10 @@ class URDFType:
 
     @classmethod
     def _from_xml(
-        cls: type[T], node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+        cls: type[T],
+        node: ET._Element,
+        path: str,
+        lazy_load_meshes: Optional[bool] = None,
     ) -> T:
         """Create an instance of this class from an XML node.
 
@@ -250,11 +253,11 @@ class URDFType:
         for element_name, (element_type, _required, multiple) in self._ELEMENTS.items():
             value = getattr(self, element_name, None)
             if not multiple:
-                element_value = cast(URDFType | None, value)
+                element_value = cast(Optional[URDFType], value)
                 if element_value is not None:
                     node.append(element_value._to_xml(node, path))
             else:
-                element_values = cast(list[URDFType] | None, value)
+                element_values = cast(Optional[list[URDFType]], value)
                 for child in element_values or []:
                     node.append(child._to_xml(node, path))
 
@@ -278,7 +281,7 @@ class URDFType:
         self._unparse_simple_elements(node, path)
         return node
 
-    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
+    def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
         """Create and return an XML node for this object.
 
         Parameters
@@ -302,7 +305,7 @@ class URDFType:
 class URDFTypeWithMesh(URDFType):
     @classmethod
     def _parse_simple_elements(
-        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
     ) -> ParsedElementDict:
         """Parse all elements in the _ELEMENTS array from the children of
         this node.
@@ -365,7 +368,7 @@ class URDFTypeWithMesh(URDFType):
 
     @classmethod
     def _parse(
-        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
     ) -> ParsedValueDict:
         """Parse all elements and attributes in the _ELEMENTS and _ATTRIBS
         arrays for a node.
@@ -393,7 +396,10 @@ class URDFTypeWithMesh(URDFType):
 
     @classmethod
     def _from_xml(
-        cls: type[T], node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+        cls: type[T],
+        node: ET._Element,
+        path: str,
+        lazy_load_meshes: Optional[bool] = None,
     ) -> T:
         """Create an instance of this class from an XML node.
 

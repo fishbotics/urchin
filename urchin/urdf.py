@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import time
 from collections import OrderedDict
-from typing import IO, Mapping, Sequence, Union, cast
+from typing import IO, Mapping, Optional, Sequence, Union, cast
 
 import networkx as nx
 import numpy as np
@@ -56,10 +56,10 @@ class URDF(URDFTypeWithMesh):
         self,
         name: str,
         links: Sequence[Link],
-        joints: Sequence[Joint] | None = None,
-        transmissions: Sequence[Transmission] | None = None,
-        materials: Sequence[Material] | None = None,
-        other_xml: bytes | str | None = None,
+        joints: Optional[Sequence[Joint]] = None,
+        transmissions: Optional[Sequence[Transmission]] = None,
+        materials: Optional[Sequence[Material]] = None,
+        other_xml: Optional[Union[bytes, str]] = None,
     ) -> None:
         if joints is None:
             joints = []
@@ -227,12 +227,12 @@ class URDF(URDFTypeWithMesh):
         return dict(self._material_map)
 
     @property
-    def other_xml(self) -> bytes | str | None:
+    def other_xml(self) -> Optional[Union[bytes, str]]:
         """str : Any extra XML that belongs with the URDF."""
         return self._other_xml
 
     @other_xml.setter
-    def other_xml(self, value: bytes | str | None) -> None:
+    def other_xml(self, value: Optional[Union[bytes, str]]) -> None:
         self._other_xml = value
 
     @property
@@ -256,8 +256,14 @@ class URDF(URDFTypeWithMesh):
         return [j.name for j in self._actuated_joints]
 
     def cfg_to_vector(
-        self, cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None
-    ) -> npt.NDArray[np.float64] | None:
+        self,
+        cfg: Union[
+            Mapping[str, float],
+            Sequence[float],
+            npt.ArrayLike,
+            None,
+        ],
+    ) -> Optional[npt.NDArray[np.float64]]:
         """Convert a configuration dictionary into a configuration vector.
 
         Parameters
@@ -338,15 +344,20 @@ class URDF(URDFTypeWithMesh):
 
     def link_fk(
         self,
-        cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None = None,
-        link: str | Link | None = None,
-        links: Sequence[str | Link] | None = None,
+        cfg: Union[
+            Mapping[str, float],
+            Sequence[float],
+            npt.ArrayLike,
+            None,
+        ] = None,
+        link: Optional[Union[str, Link]] = None,
+        links: Optional[Sequence[Union[str, Link]]] = None,
         use_names: bool = False,
-    ) -> (
-        dict[Link, npt.NDArray[np.float64]]
-        | dict[str, npt.NDArray[np.float64]]
-        | npt.NDArray[np.float64]
-    ):
+    ) -> Union[
+        dict[Link, npt.NDArray[np.float64]],
+        dict[str, npt.NDArray[np.float64]],
+        npt.NDArray[np.float64],
+    ]:
         """Computes the poses of the URDF's links via forward kinematics.
 
         Parameters
@@ -517,8 +528,13 @@ class URDF(URDFTypeWithMesh):
 
     def visual_geometry_fk(
         self,
-        cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None = None,
-        links: Sequence[str | Link] | None = None,
+        cfg: Union[
+            Mapping[str, float],
+            Sequence[float],
+            npt.ArrayLike,
+            None,
+        ] = None,
+        links: Optional[Sequence[Union[str, Link]]] = None,
     ) -> dict:
         """Computes the poses of the URDF's visual geometries using fk.
 
@@ -552,13 +568,13 @@ class URDF(URDFTypeWithMesh):
 
     def visual_geometry_fk_batch(
         self,
-        cfgs: (
-            Mapping[str, Sequence[float]]
-            | Sequence[Mapping[str, float] | None]
-            | npt.ArrayLike
-            | None
-        ) = None,
-        links: Sequence[str | Link] | None = None,
+        cfgs: Union[
+            Mapping[str, Sequence[float]],
+            Sequence[Union[Mapping[str, float], None]],
+            npt.ArrayLike,
+            None,
+        ] = None,
+        links: Optional[Sequence[Union[str, Link]]] = None,
     ) -> dict:
         """Computes the poses of the URDF's visual geometries using fk.
 
@@ -591,8 +607,13 @@ class URDF(URDFTypeWithMesh):
 
     def visual_trimesh_fk(
         self,
-        cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None = None,
-        links: Sequence[str | Link] | None = None,
+        cfg: Union[
+            Mapping[str, float],
+            Sequence[float],
+            npt.ArrayLike,
+            None,
+        ] = None,
+        links: Optional[Sequence[Union[str, Link]]] = None,
     ) -> dict[trimesh.Trimesh, npt.NDArray[np.float64]]:
         """Computes the poses of the URDF's visual trimeshes using fk.
 
@@ -665,13 +686,13 @@ class URDF(URDFTypeWithMesh):
 
     def visual_trimesh_fk_batch(
         self,
-        cfgs: (
-            Mapping[str, Sequence[float]]
-            | Sequence[Mapping[str, float] | None]
-            | npt.ArrayLike
-            | None
-        ) = None,
-        links: Sequence[str | Link] | None = None,
+        cfgs: Union[
+            Mapping[str, Sequence[float]],
+            Sequence[Union[Mapping[str, float], None]],
+            npt.ArrayLike,
+            None,
+        ] = None,
+        links: Optional[Sequence[Union[str, Link]]] = None,
     ) -> dict[trimesh.Trimesh, npt.NDArray[np.float64]]:
         """Computes the poses of the URDF's visual trimeshes using fk.
 
@@ -985,7 +1006,12 @@ class URDF(URDFTypeWithMesh):
 
     def show(
         self,
-        cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None = None,
+        cfg: Union[
+            Mapping[str, float],
+            Sequence[float],
+            npt.ArrayLike,
+            None,
+        ] = None,
         use_collision: bool = False,
     ) -> None:
         """Visualize the URDF in a given configuration.
@@ -1018,9 +1044,9 @@ class URDF(URDFTypeWithMesh):
 
     def copy(
         self,
-        name: str | None = None,
+        name: Optional[str] = None,
         prefix: str = "",
-        scale: float | Sequence[float] | None = None,
+        scale: Union[float, Sequence[float], None] = None,
         collision_only: bool = False,
     ) -> "URDF":
         """Make a deep copy of the URDF.
@@ -1050,7 +1076,7 @@ class URDF(URDFTypeWithMesh):
             other_xml=self.other_xml,
         )
 
-    def save(self, file_obj: str | IO[bytes] | IO[str]) -> None:
+    def save(self, file_obj: Union[str, IO[bytes], IO[str]]) -> None:
         """Save this URDF to a file.
 
         Parameters
@@ -1078,9 +1104,9 @@ class URDF(URDFTypeWithMesh):
     def join(
         self,
         other: "URDF",
-        link: Link | str,
-        origin: npt.ArrayLike | None = None,
-        name: str | None = None,
+        link: Union[Link, str],
+        origin: Optional[npt.ArrayLike] = None,
+        name: Optional[str] = None,
         prefix: str = "",
     ) -> "URDF":
         """Join another URDF to this one by rigidly fixturing the two at a link.
@@ -1159,7 +1185,9 @@ class URDF(URDFTypeWithMesh):
                     self._material_map[v.material.name] = v.material
 
     @classmethod
-    def load(cls, file_obj: str | IO[bytes] | IO[str], lazy_load_meshes: bool = False) -> "URDF":
+    def load(
+        cls, file_obj: Union[str, IO[bytes], IO[str]], lazy_load_meshes: bool = False
+    ) -> "URDF":
         """Load a URDF from a file.
 
         Parameters
@@ -1306,7 +1334,7 @@ class URDF(URDFTypeWithMesh):
             raise ValueError("There are cycles in the link graph")
 
         # Ensure that there is exactly one base link, which has no parent
-        base_link: Link | None = None
+        base_link: Optional[Link] = None
         end_links: list[Link] = []
         for n in self._G:
             if len(nx.descendants(self._G, n)) == 0:
@@ -1323,7 +1351,13 @@ class URDF(URDFTypeWithMesh):
         return base_link, end_links
 
     def _process_cfg(
-        self, cfg: Mapping[str, float] | Sequence[float] | npt.ArrayLike | None
+        self,
+        cfg: Union[
+            Mapping[str, float],
+            Sequence[float],
+            npt.ArrayLike,
+            None,
+        ],
     ) -> dict[Joint, float]:
         """Process a joint configuration spec into a dictionary mapping
         joints to configuration values.
@@ -1350,20 +1384,26 @@ class URDF(URDFTypeWithMesh):
 
     def _process_cfgs(
         self,
-        cfgs: (
-            Mapping[str, Sequence[float]]
-            | Sequence[Mapping[str, float] | None]
-            | npt.ArrayLike
-            | None
-        ),
-    ) -> tuple[dict[Joint, Sequence[float] | npt.NDArray[np.float64] | None], int | None]:
+        cfgs: Union[
+            Mapping[str, Sequence[float]],
+            Sequence[Union[Mapping[str, float], None]],
+            npt.ArrayLike,
+            None,
+        ],
+    ) -> tuple[
+        dict[Joint, Union[Sequence[float], npt.NDArray[np.float64], None]],
+        Optional[int],
+    ]:
         """Process a list of joint configurations into a dictionary mapping joints to
         configuration values.
 
         This should result in a dict mapping each joint to a list of cfg values, one
         per joint.
         """
-        joint_cfg: dict[Joint, list[float] | npt.NDArray[np.float64] | None] = {
+        joint_cfg: dict[
+            Joint,
+            Union[list[float], npt.NDArray[np.float64], None],
+        ] = {
             j: [] for j in self.actuated_joints
         }
         n_cfgs = None
@@ -1420,7 +1460,7 @@ class URDF(URDFTypeWithMesh):
 
     @classmethod
     def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
     ) -> "URDF":
         # Explicit parse of URDF components for typing clarity
         name = str(node.attrib.get("name", ""))
@@ -1446,7 +1486,7 @@ class URDF(URDFTypeWithMesh):
             other_xml=other_xml,
         )
 
-    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
+    def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
         node = self._unparse(path)
         if self.other_xml:
             extra_tree = ET.fromstring(self.other_xml)

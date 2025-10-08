@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Optional, Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -41,9 +41,9 @@ class SafetyController(URDFType):
     def __init__(
         self,
         k_velocity: float,
-        k_position: float | None = None,
-        soft_lower_limit: float | None = None,
-        soft_upper_limit: float | None = None,
+        k_position: Optional[float] = None,
+        soft_lower_limit: Optional[float] = None,
+        soft_upper_limit: Optional[float] = None,
     ):
         self.k_velocity = k_velocity
         self.k_position = k_position
@@ -56,7 +56,7 @@ class SafetyController(URDFType):
         return self._soft_lower_limit
 
     @soft_lower_limit.setter
-    def soft_lower_limit(self, value: float | None) -> None:
+    def soft_lower_limit(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         else:
@@ -69,7 +69,7 @@ class SafetyController(URDFType):
         return self._soft_upper_limit
 
     @soft_upper_limit.setter
-    def soft_upper_limit(self, value: float | None) -> None:
+    def soft_upper_limit(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         else:
@@ -82,7 +82,7 @@ class SafetyController(URDFType):
         return self._k_position
 
     @k_position.setter
-    def k_position(self, value: float | None) -> None:
+    def k_position(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         else:
@@ -99,7 +99,7 @@ class SafetyController(URDFType):
         self._k_velocity = float(value)
 
     def copy(
-        self, prefix: str = "", scale: float | Sequence[float] | None = None
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
     ) -> "SafetyController":
         """Create a deep copy of the visual with the prefix applied to all names.
 
@@ -137,34 +137,34 @@ class JointCalibration(URDFType):
     _ATTRIBS = {"rising": (float, False), "falling": (float, False)}
     _TAG = "calibration"
 
-    def __init__(self, rising: float | None = None, falling: float | None = None):
+    def __init__(self, rising: Optional[float] = None, falling: Optional[float] = None):
         self.rising = rising
         self.falling = falling
 
     @property
-    def rising(self) -> float | None:
+    def rising(self) -> Optional[float]:
         """float : description."""
         return self._rising
 
     @rising.setter
-    def rising(self, value: float | None) -> None:
+    def rising(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         self._rising = value
 
     @property
-    def falling(self) -> float | None:
+    def falling(self) -> Optional[float]:
         """float : description."""
         return self._falling
 
     @falling.setter
-    def falling(self, value: float | None) -> None:
+    def falling(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         self._falling = value
 
     def copy(
-        self, prefix: str = "", scale: float | Sequence[float] | None = None
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
     ) -> "JointCalibration":
         """Create a deep copy of the visual with the prefix applied to all names.
 
@@ -203,34 +203,34 @@ class JointDynamics(URDFType):
     }
     _TAG = "dynamics"
 
-    def __init__(self, damping: float | None, friction: float | None):
+    def __init__(self, damping: Optional[float], friction: Optional[float]):
         self.damping = damping
         self.friction = friction
 
     @property
-    def damping(self) -> float | None:
+    def damping(self) -> Optional[float]:
         """float : The damping value of the joint."""
         return self._damping
 
     @damping.setter
-    def damping(self, value: float | None) -> None:
+    def damping(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         self._damping = value
 
     @property
-    def friction(self) -> float | None:
+    def friction(self) -> Optional[float]:
         """float : The static friction value of the joint."""
         return self._friction
 
     @friction.setter
-    def friction(self, value: float | None) -> None:
+    def friction(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         self._friction = value
 
     def copy(
-        self, prefix: str = "", scale: float | Sequence[float] | None = None
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
     ) -> "JointDynamics":
         """Create a deep copy with the prefix applied to all names.
 
@@ -278,8 +278,8 @@ class JointLimit(URDFType):
         self,
         effort: float,
         velocity: float,
-        lower: float | None = None,
-        upper: float | None = None,
+        lower: Optional[float] = None,
+        upper: Optional[float] = None,
     ):
         self.effort = effort
         self.velocity = velocity
@@ -305,28 +305,30 @@ class JointLimit(URDFType):
         self._velocity = float(value)
 
     @property
-    def lower(self) -> float | None:
+    def lower(self) -> Optional[float]:
         """float : The lower joint limit."""
         return self._lower
 
     @lower.setter
-    def lower(self, value: float | None) -> None:
+    def lower(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         self._lower = value
 
     @property
-    def upper(self) -> float | None:
+    def upper(self) -> Optional[float]:
         """float : The upper joint limit."""
         return self._upper
 
     @upper.setter
-    def upper(self, value: float | None) -> None:
+    def upper(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         self._upper = value
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "JointLimit":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "JointLimit":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -371,7 +373,9 @@ class JointMimic(URDFType):
     }
     _TAG = "mimic"
 
-    def __init__(self, joint: str, multiplier: float | None = None, offset: float | None = None):
+    def __init__(
+        self, joint: str, multiplier: Optional[float] = None, offset: Optional[float] = None
+    ):
         self.joint = joint
         self.multiplier = multiplier
         self.offset = offset
@@ -391,7 +395,7 @@ class JointMimic(URDFType):
         return self._multiplier
 
     @multiplier.setter
-    def multiplier(self, value: float | None) -> None:
+    def multiplier(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         else:
@@ -404,14 +408,16 @@ class JointMimic(URDFType):
         return self._offset
 
     @offset.setter
-    def offset(self, value: float | None) -> None:
+    def offset(self, value: Optional[float]) -> None:
         if value is not None:
             value = float(value)
         else:
             value = 0.0
         self._offset = value
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "JointMimic":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "JointMimic":
         """Create a deep copy of the joint mimic with the prefix applied to all names.
 
         Parameters
@@ -645,7 +651,7 @@ class Joint(URDFType):
                 raise TypeError("Expected JointMimic type")
         self._mimic = value
 
-    def is_valid(self, cfg: float | npt.ArrayLike) -> bool:
+    def is_valid(self, cfg: Union[float, npt.ArrayLike]) -> bool:
         """Check if the provided configuration value is valid for this joint.
 
         Parameters
@@ -671,7 +677,9 @@ class Joint(URDFType):
             upper = self.limit.upper
         return cfg_val >= lower and cfg_val <= upper
 
-    def get_child_pose(self, cfg: float | npt.ArrayLike | None = None) -> np.ndarray:
+    def get_child_pose(
+        self, cfg: Union[float, npt.ArrayLike, None] = None
+    ) -> np.ndarray:
         """Computes the child pose relative to a parent pose for a given
         configuration value.
 
@@ -736,7 +744,7 @@ class Joint(URDFType):
         else:
             raise ValueError("Invalid configuration")
 
-    def get_child_poses(self, cfg: npt.ArrayLike | None, n_cfgs: int) -> np.ndarray:
+    def get_child_poses(self, cfg: Optional[npt.ArrayLike], n_cfgs: int) -> np.ndarray:
         """Computes the child pose relative to a parent pose for a given set of
         configuration values.
 
@@ -784,7 +792,9 @@ class Joint(URDFType):
             raise ValueError("Invalid configuration")
 
     @classmethod
-    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+    def _from_xml(
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
+    ):
         kwargs = cls._parse(node, path)
         kwargs["joint_type"] = str(node.attrib["type"])
         kwargs["parent"] = node.find("parent").attrib["link"]
@@ -796,7 +806,7 @@ class Joint(URDFType):
         kwargs["origin"] = parse_origin(node)
         return cls(**kwargs)
 
-    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
+    def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
         node = self._unparse(path)
         parent = ET.Element("parent")
         parent.attrib["link"] = self.parent

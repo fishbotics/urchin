@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Sequence
+from typing import Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -254,7 +254,7 @@ def load_meshes(filename: str) -> list[trimesh.Trimesh]:
 
 
 def configure_origin(
-    value: None | Sequence[float] | npt.ArrayLike,
+    value: Union[None, Sequence[float], npt.ArrayLike],
 ) -> npt.NDArray[np.float64]:
     """Convert a value into a 4x4 transform matrix.
 

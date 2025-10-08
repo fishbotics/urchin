@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from os import PathLike, fspath
+from typing import Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -28,7 +29,11 @@ class Texture(URDFType):
     _ATTRIBS = {"filename": (str, True)}
     _TAG = "texture"
 
-    def __init__(self, filename: str, image: PIL.Image.Image | str | np.ndarray | None = None):
+    def __init__(
+        self,
+        filename: str,
+        image: Union[PIL.Image.Image, str, np.ndarray, None] = None,
+    ):
         if image is None:
             image = PIL.Image.open(filename)
         self.filename = filename
@@ -40,7 +45,7 @@ class Texture(URDFType):
         return self._filename
 
     @filename.setter
-    def filename(self, value: str | PathLike[str]) -> None:
+    def filename(self, value: Union[str, PathLike[str]]) -> None:
         self._filename = fspath(value)
 
     @property
@@ -49,7 +54,7 @@ class Texture(URDFType):
         return self._image
 
     @image.setter
-    def image(self, value: PIL.Image.Image | str | np.ndarray) -> None:
+    def image(self, value: Union[PIL.Image.Image, str, np.ndarray]) -> None:
         if isinstance(value, str):
             value = PIL.Image.open(value)
         if isinstance(value, np.ndarray):
@@ -59,21 +64,25 @@ class Texture(URDFType):
         self._image = value
 
     @classmethod
-    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+    def _from_xml(
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
+    ):
         # Explicitly parse fields for typing clarity
         filename = str(node.attrib["filename"]) if "filename" in node.attrib else ""
         fn = get_filename(path, filename)
         image = PIL.Image.open(fn)
         return cls(filename=filename, image=image)
 
-    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
+    def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
         # Save the image
         filepath = get_filename(path, self.filename, makedirs=True)
         self.image.save(filepath)
 
         return self._unparse(path)
 
-    def copy(self, prefix: str = "", scale: float | np.ndarray | None = None) -> "Texture":
+    def copy(
+        self, prefix: str = "", scale: Union[float, np.ndarray, None] = None
+    ) -> "Texture":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -112,8 +121,8 @@ class Material(URDFType):
     def __init__(
         self,
         name: str,
-        color: npt.ArrayLike | None = None,
-        texture: Texture | str | None = None,
+        color: Optional[npt.ArrayLike] = None,
+        texture: Union[Texture, str, None] = None,
     ):
         self.name = name
         self.color = color
@@ -129,12 +138,12 @@ class Material(URDFType):
         self._name = str(value)
 
     @property
-    def color(self) -> np.ndarray | None:
+    def color(self) -> Optional[np.ndarray]:
         """(4,) float : The RGBA color of the material, in the range [0,1]."""
         return self._color
 
     @color.setter
-    def color(self, value: npt.ArrayLike | None) -> None:
+    def color(self, value: Optional[npt.ArrayLike]) -> None:
         if value is not None:
             value = np.asanyarray(value).astype(float)
             value = np.clip(value, 0.0, 1.0)
@@ -143,12 +152,12 @@ class Material(URDFType):
         self._color = value
 
     @property
-    def texture(self) -> Texture | None:
+    def texture(self) -> Optional[Texture]:
         """:class:`.Texture` : The texture for the material."""
         return self._texture
 
     @texture.setter
-    def texture(self, value: Texture | str | None) -> None:
+    def texture(self, value: Union[Texture, str, None]) -> None:
         if value is not None:
             if isinstance(value, str):
                 image = PIL.Image.open(value)
@@ -158,7 +167,9 @@ class Material(URDFType):
         self._texture = value
 
     @classmethod
-    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+    def _from_xml(
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
+    ):
         name = str(node.attrib["name"]) if "name" in node.attrib else ""
         color_arr = None
         color_node = node.find("color")
@@ -188,7 +199,9 @@ class Material(URDFType):
                 node.append(color)
         return node
 
-    def copy(self, prefix: str = "", scale: float | np.ndarray | None = None) -> "Material":
+    def copy(
+        self, prefix: str = "", scale: Union[float, np.ndarray, None] = None
+    ) -> "Material":
         """Create a deep copy of the material with the prefix applied to all names.
 
         Parameters

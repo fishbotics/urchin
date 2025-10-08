@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Sequence
+from typing import Optional, Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -55,7 +55,9 @@ class Box(URDFType):
             self._meshes = [trimesh.creation.box(extents=self.size)]
         return self._meshes
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "Box":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "Box":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -130,7 +132,9 @@ class Cylinder(URDFType):
             self._meshes = [trimesh.creation.cylinder(radius=self.radius, height=self.length)]
         return self._meshes
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "Cylinder":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "Cylinder":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -208,7 +212,9 @@ class Sphere(URDFType):
             self._meshes = [trimesh.creation.icosphere(radius=self.radius)]
         return self._meshes
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "Sphere":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "Sphere":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -269,9 +275,11 @@ class Mesh(URDFTypeWithMesh):
         self,
         filename: str,
         combine: bool,
-        scale: npt.ArrayLike | None = None,
-        meshes: list[trimesh.Trimesh] | trimesh.Trimesh | str | None = None,
-        lazy_filename: str | None = None,
+        scale: Optional[npt.ArrayLike] = None,
+        meshes: Union[
+            list[trimesh.Trimesh], trimesh.Trimesh, str, None
+        ] = None,
+        lazy_filename: Optional[str] = None,
     ):
         if meshes is None:
             if lazy_filename is None:
@@ -294,12 +302,12 @@ class Mesh(URDFTypeWithMesh):
         self._filename = value
 
     @property
-    def scale(self) -> np.ndarray | None:
+    def scale(self) -> Optional[np.ndarray]:
         """(3,) float : A scaling for the mesh along its local XYZ axes."""
         return self._scale
 
     @scale.setter
-    def scale(self, value: npt.ArrayLike | None) -> None:
+    def scale(self, value: Optional[npt.ArrayLike]) -> None:
         if value is not None:
             value = np.asanyarray(value).astype(np.float64)
         self._scale = value
@@ -315,7 +323,10 @@ class Mesh(URDFTypeWithMesh):
         return self._meshes or []
 
     @meshes.setter
-    def meshes(self, value: list[trimesh.Trimesh] | trimesh.Trimesh | str | None) -> None:
+    def meshes(
+        self,
+        value: Union[list[trimesh.Trimesh], trimesh.Trimesh, str, None],
+    ) -> None:
         if self.lazy_filename is not None and value is None:
             self._meshes = None
         elif isinstance(value, str):
@@ -347,7 +358,9 @@ class Mesh(URDFTypeWithMesh):
         return meshes
 
     @classmethod
-    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+    def _from_xml(
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
+    ):
         # Explicit parse for filename and optional scale
         filename_attr = str(node.attrib["filename"]) if "filename" in node.attrib else ""
         scale_attr = node.attrib.get("scale")
@@ -371,14 +384,16 @@ class Mesh(URDFTypeWithMesh):
             lazy_filename=lazy_filename,
         )
 
-    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
+    def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
         # Get the filename
         fn = get_filename(path, self.filename, makedirs=True)
 
         # Export the meshes as a single file
         if self._meshes is not None:
             meshes_list = self.meshes or []
-            export_obj: trimesh.Trimesh | trimesh.Scene | list[trimesh.Trimesh]
+            export_obj: Union[
+                trimesh.Trimesh, trimesh.Scene, list[trimesh.Trimesh]
+            ]
             if len(meshes_list) == 1:
                 export_obj = meshes_list[0]
             elif os.path.splitext(fn)[1] == ".glb":
@@ -391,7 +406,9 @@ class Mesh(URDFTypeWithMesh):
         node = self._unparse(path)
         return node
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "Mesh":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "Mesh":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -457,10 +474,10 @@ class Geometry(URDFTypeWithMesh):
 
     def __init__(
         self,
-        box: Box | None = None,
-        cylinder: Cylinder | None = None,
-        sphere: Sphere | None = None,
-        mesh: Mesh | None = None,
+        box: Optional[Box] = None,
+        cylinder: Optional[Cylinder] = None,
+        sphere: Optional[Sphere] = None,
+        mesh: Optional[Mesh] = None,
     ):
         if box is None and cylinder is None and sphere is None and mesh is None:
             raise ValueError("At least one geometry element must be set")
@@ -470,51 +487,51 @@ class Geometry(URDFTypeWithMesh):
         self.mesh = mesh
 
     @property
-    def box(self) -> Box | None:
+    def box(self) -> Optional[Box]:
         """:class:`.Box` : Box geometry."""
         return self._box
 
     @box.setter
-    def box(self, value: Box | None) -> None:
+    def box(self, value: Optional[Box]) -> None:
         if value is not None and not isinstance(value, Box):
             raise TypeError("Expected Box type")
         self._box = value
 
     @property
-    def cylinder(self) -> Cylinder | None:
+    def cylinder(self) -> Optional[Cylinder]:
         """:class:`.Cylinder` : Cylinder geometry."""
         return self._cylinder
 
     @cylinder.setter
-    def cylinder(self, value: Cylinder | None) -> None:
+    def cylinder(self, value: Optional[Cylinder]) -> None:
         if value is not None and not isinstance(value, Cylinder):
             raise TypeError("Expected Cylinder type")
         self._cylinder = value
 
     @property
-    def sphere(self) -> Sphere | None:
+    def sphere(self) -> Optional[Sphere]:
         """:class:`.Sphere` : Spherical geometry."""
         return self._sphere
 
     @sphere.setter
-    def sphere(self, value: Sphere | None) -> None:
+    def sphere(self, value: Optional[Sphere]) -> None:
         if value is not None and not isinstance(value, Sphere):
             raise TypeError("Expected Sphere type")
         self._sphere = value
 
     @property
-    def mesh(self) -> Mesh | None:
+    def mesh(self) -> Optional[Mesh]:
         """:class:`.Mesh` : Mesh geometry."""
         return self._mesh
 
     @mesh.setter
-    def mesh(self, value: Mesh | None) -> None:
+    def mesh(self, value: Optional[Mesh]) -> None:
         if value is not None and not isinstance(value, Mesh):
             raise TypeError("Expected Mesh type")
         self._mesh = value
 
     @property
-    def geometry(self) -> Box | Cylinder | Sphere | Mesh | None:
+    def geometry(self) -> Union[Box, Cylinder, Sphere, Mesh, None]:
         """:class:`.Box`, :class:`.Cylinder`, :class:`.Sphere`, or
         :class:`.Mesh` : The valid geometry element.
         """
@@ -536,7 +553,9 @@ class Geometry(URDFTypeWithMesh):
         assert self.geometry is not None
         return self.geometry.meshes
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "Geometry":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "Geometry":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -580,7 +599,9 @@ class Collision(URDFTypeWithMesh):
     }
     _TAG = "collision"
 
-    def __init__(self, name: str | None, origin: npt.ArrayLike | None, geometry: Geometry):
+    def __init__(
+        self, name: Optional[str], origin: Optional[npt.ArrayLike], geometry: Geometry
+    ):
         self.geometry = geometry
         self.name = name
         self.origin = origin
@@ -597,12 +618,12 @@ class Collision(URDFTypeWithMesh):
         self._geometry = value
 
     @property
-    def name(self) -> str | None:
+    def name(self) -> Optional[str]:
         """str : The name of this collision element."""
         return self._name
 
     @name.setter
-    def name(self, value: str | None) -> None:
+    def name(self, value: Optional[str]) -> None:
         if value is not None:
             value = str(value)
         self._name = value
@@ -613,11 +634,13 @@ class Collision(URDFTypeWithMesh):
         return self._origin
 
     @origin.setter
-    def origin(self, value: npt.ArrayLike | None) -> None:
+    def origin(self, value: Optional[npt.ArrayLike]) -> None:
         self._origin = configure_origin(value)
 
     @classmethod
-    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+    def _from_xml(
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
+    ):
         name = node.attrib.get("name")
         geom_node = node.find("geometry")
         if geom_node is None:
@@ -626,12 +649,14 @@ class Collision(URDFTypeWithMesh):
         origin = parse_origin(node)
         return cls(name=name, origin=origin, geometry=geometry)
 
-    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
+    def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
         node = self._unparse(path)
         node.append(unparse_origin(self.origin))
         return node
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "Collision":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "Collision":
         """Create a deep copy of the visual with the prefix applied to all names.
 
         Parameters
@@ -688,9 +713,9 @@ class Visual(URDFTypeWithMesh):
     def __init__(
         self,
         geometry: Geometry,
-        name: str | None = None,
-        origin: npt.ArrayLike | None = None,
-        material: Material | None = None,
+        name: Optional[str] = None,
+        origin: Optional[npt.ArrayLike] = None,
+        material: Optional[Material] = None,
     ):
         self.geometry = geometry
         self.name = name
@@ -709,12 +734,12 @@ class Visual(URDFTypeWithMesh):
         self._geometry = value
 
     @property
-    def name(self) -> str | None:
+    def name(self) -> Optional[str]:
         """str : The name of this visual element."""
         return self._name
 
     @name.setter
-    def name(self, value: str | None) -> None:
+    def name(self, value: Optional[str]) -> None:
         if value is not None:
             value = str(value)
         self._name = value
@@ -725,23 +750,25 @@ class Visual(URDFTypeWithMesh):
         return self._origin
 
     @origin.setter
-    def origin(self, value: npt.ArrayLike | None) -> None:
+    def origin(self, value: Optional[npt.ArrayLike]) -> None:
         self._origin = configure_origin(value)
 
     @property
-    def material(self) -> Material | None:
+    def material(self) -> Optional[Material]:
         """:class:`.Material` : The material for this element."""
         return self._material
 
     @material.setter
-    def material(self, value: Material | None) -> None:
+    def material(self, value: Optional[Material]) -> None:
         if value is not None:
             if not isinstance(value, Material):
                 raise TypeError("Must set material with Material object")
         self._material = value
 
     @classmethod
-    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+    def _from_xml(
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
+    ):
         geom_node = node.find("geometry")
         if geom_node is None:
             raise ValueError("Visual element missing geometry")
@@ -752,12 +779,14 @@ class Visual(URDFTypeWithMesh):
         material = Material._from_xml(mat_node, path) if mat_node is not None else None
         return cls(geometry=geometry, name=name, origin=origin, material=material)
 
-    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
+    def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
         node = self._unparse(path)
         node.append(unparse_origin(self.origin))
         return node
 
-    def copy(self, prefix: str = "", scale: float | Sequence[float] | None = None) -> "Visual":
+    def copy(
+        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
+    ) -> "Visual":
         """Create a deep copy of the visual with the prefix applied to all names.
 
         Parameters
@@ -805,7 +834,9 @@ class Inertial(URDFType):
 
     _TAG = "inertial"
 
-    def __init__(self, mass: float, inertia: npt.ArrayLike, origin: npt.ArrayLike | None = None):
+    def __init__(
+        self, mass: float, inertia: npt.ArrayLike, origin: Optional[npt.ArrayLike] = None
+    ):
         self.mass = mass
         self.inertia = inertia
         self.origin = origin
@@ -837,11 +868,13 @@ class Inertial(URDFType):
         return self._origin
 
     @origin.setter
-    def origin(self, value: npt.ArrayLike | None) -> None:
+    def origin(self, value: Optional[npt.ArrayLike]) -> None:
         self._origin = configure_origin(value)
 
     @classmethod
-    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: bool | None = None):
+    def _from_xml(
+        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
+    ):
         origin = parse_origin(node)
         mass = float(node.find("mass").attrib["value"])
         n = node.find("inertia")
@@ -854,7 +887,7 @@ class Inertial(URDFType):
         inertia = np.array([[xx, xy, xz], [xy, yy, yz], [xz, yz, zz]], dtype=np.float64)
         return cls(mass=mass, inertia=inertia, origin=origin)
 
-    def _to_xml(self, parent: ET._Element | None, path: str) -> ET._Element:
+    def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
         node = ET.Element("inertial")
         node.append(unparse_origin(self.origin))
         mass = ET.Element("mass")
@@ -873,9 +906,9 @@ class Inertial(URDFType):
     def copy(
         self,
         prefix: str = "",
-        mass: float | None = None,
-        origin: np.ndarray | None = None,
-        inertia: np.ndarray | None = None,
+        mass: Optional[float] = None,
+        origin: Optional[np.ndarray] = None,
+        inertia: Optional[np.ndarray] = None,
     ) -> "Inertial":
         """Create a deep copy of the visual with the prefix applied to all names.
 
@@ -930,16 +963,16 @@ class Link(URDFTypeWithMesh):
     def __init__(
         self,
         name: str,
-        inertial: Inertial | None,
-        visuals: Sequence[Visual] | None,
-        collisions: Sequence[Collision] | None,
+        inertial: Optional[Inertial],
+        visuals: Optional[Sequence[Visual]],
+        collisions: Optional[Sequence[Collision]],
     ):
         self.name = name
         self.inertial = inertial
         self.visuals = visuals
         self.collisions = collisions
 
-        self._collision_mesh: trimesh.Trimesh | None = None
+        self._collision_mesh: Optional[trimesh.Trimesh] = None
 
     @property
     def name(self) -> str:
@@ -956,7 +989,7 @@ class Link(URDFTypeWithMesh):
         return self._inertial
 
     @inertial.setter
-    def inertial(self, value: Inertial | None) -> None:
+    def inertial(self, value: Optional[Inertial]) -> None:
         if value is not None and not isinstance(value, Inertial):
             raise TypeError("Expected Inertial object")
         # Set default inertial
@@ -970,7 +1003,7 @@ class Link(URDFTypeWithMesh):
         return self._visuals
 
     @visuals.setter
-    def visuals(self, value: Sequence[Visual] | None) -> None:
+    def visuals(self, value: Optional[Sequence[Visual]]) -> None:
         if value is None:
             value = []
         else:
@@ -986,7 +1019,7 @@ class Link(URDFTypeWithMesh):
         return self._collisions
 
     @collisions.setter
-    def collisions(self, value: Sequence[Collision] | None) -> None:
+    def collisions(self, value: Optional[Sequence[Collision]]) -> None:
         if value is None:
             value = []
         else:
@@ -997,7 +1030,7 @@ class Link(URDFTypeWithMesh):
         self._collisions = value
 
     @property
-    def collision_mesh(self) -> trimesh.Trimesh | None:
+    def collision_mesh(self) -> Optional[trimesh.Trimesh]:
         """:class:`~trimesh.base.Trimesh` : A single collision mesh for
         the link, specified in the link frame, or None if there isn't one.
         """
@@ -1027,7 +1060,7 @@ class Link(URDFTypeWithMesh):
     def copy(
         self,
         prefix: str = "",
-        scale: float | Sequence[float] | None = None,
+        scale: Union[float, Sequence[float], None] = None,
         collision_only: bool = False,
     ) -> "Link":
         """Create a deep copy of the link.
