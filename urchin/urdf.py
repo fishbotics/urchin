@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import time
 from collections import OrderedDict
-from typing import IO, Mapping, Sequence, cast
+from typing import IO, Mapping, Sequence, Union, cast
 
 import networkx as nx
 import numpy as np
@@ -1411,7 +1411,11 @@ class URDF(URDFTypeWithMesh):
         from typing import cast as _cast
 
         return _cast(
-            dict[Joint, Sequence[float] | npt.NDArray[np.float64] | None], joint_cfg
+            dict[
+                Joint,
+                Union[Sequence[float], npt.NDArray[np.float64], None],
+            ],
+            joint_cfg,
         ), n_cfgs
 
     @classmethod
