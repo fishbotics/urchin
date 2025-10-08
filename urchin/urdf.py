@@ -1403,9 +1403,7 @@ class URDF(URDFTypeWithMesh):
         joint_cfg: dict[
             Joint,
             Union[list[float], npt.NDArray[np.float64], None],
-        ] = {
-            j: [] for j in self.actuated_joints
-        }
+        ] = {j: [] for j in self.actuated_joints}
         n_cfgs = None
         if isinstance(cfgs, dict):
             for joint in cfgs:

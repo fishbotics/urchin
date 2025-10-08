@@ -71,9 +71,7 @@ class Actuator(URDFType):
         self._hardwareInterfaces = value
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         name = str(node.attrib["name"]) if "name" in node.attrib else ""
         mr_node = node.find("mechanicalReduction")
         mr_val = float(mr_node.text) if mr_node is not None and mr_node.text else None
@@ -159,9 +157,7 @@ class TransmissionJoint(URDFType):
         self._hardwareInterfaces = value
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         name = str(node.attrib["name"]) if "name" in node.attrib else ""
         hi_nodes = node.findall("hardwareInterface")
         hi_list = [str(h.text) for h in hi_nodes if h is not None and h.text]
@@ -290,9 +286,7 @@ class Transmission(URDFType):
         self._actuators = value
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         name = str(node.attrib["name"]) if "name" in node.attrib else ""
         ttype = node.attrib.get("type")
         if ttype is None:

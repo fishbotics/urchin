@@ -145,10 +145,7 @@ class URDFType:
                         f"Missing required subelement(s) of type {element_type.__name__} when "
                         f"parsing an object of type {cls.__name__}."
                     )
-                value = [
-                    element_type._from_xml(child, path)
-                    for child in element_nodes
-                ]
+                value = [element_type._from_xml(child, path) for child in element_nodes]
             kwargs[element_name] = value
         return kwargs
 
@@ -350,9 +347,7 @@ class URDFTypeWithMesh(URDFType):
                 if len(element_nodes) == 0 and required:
                     raise ValueError(
                         "Missing required subelement(s) of type {} when "
-                        "parsing an object of type {}".format(
-                            element_type.__name__, cls.__name__
-                        )
+                        "parsing an object of type {}".format(element_type.__name__, cls.__name__)
                     )
                 if issubclass(element_type, URDFTypeWithMesh):
                     value = [
@@ -360,9 +355,7 @@ class URDFTypeWithMesh(URDFType):
                         for child in element_nodes
                     ]
                 else:
-                    value = [
-                        element_type._from_xml(child, path) for child in element_nodes
-                    ]
+                    value = [element_type._from_xml(child, path) for child in element_nodes]
             kwargs[element_name] = value
         return kwargs
 

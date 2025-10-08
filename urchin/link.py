@@ -55,9 +55,7 @@ class Box(URDFType):
             self._meshes = [trimesh.creation.box(extents=self.size)]
         return self._meshes
 
-    def copy(
-        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
-    ) -> "Box":
+    def copy(self, prefix: str = "", scale: Union[float, Sequence[float], None] = None) -> "Box":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -212,9 +210,7 @@ class Sphere(URDFType):
             self._meshes = [trimesh.creation.icosphere(radius=self.radius)]
         return self._meshes
 
-    def copy(
-        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
-    ) -> "Sphere":
+    def copy(self, prefix: str = "", scale: Union[float, Sequence[float], None] = None) -> "Sphere":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -276,9 +272,7 @@ class Mesh(URDFTypeWithMesh):
         filename: str,
         combine: bool,
         scale: Optional[npt.ArrayLike] = None,
-        meshes: Union[
-            list[trimesh.Trimesh], trimesh.Trimesh, str, None
-        ] = None,
+        meshes: Union[list[trimesh.Trimesh], trimesh.Trimesh, str, None] = None,
         lazy_filename: Optional[str] = None,
     ):
         if meshes is None:
@@ -358,9 +352,7 @@ class Mesh(URDFTypeWithMesh):
         return meshes
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         # Explicit parse for filename and optional scale
         filename_attr = str(node.attrib["filename"]) if "filename" in node.attrib else ""
         scale_attr = node.attrib.get("scale")
@@ -391,9 +383,7 @@ class Mesh(URDFTypeWithMesh):
         # Export the meshes as a single file
         if self._meshes is not None:
             meshes_list = self.meshes or []
-            export_obj: Union[
-                trimesh.Trimesh, trimesh.Scene, list[trimesh.Trimesh]
-            ]
+            export_obj: Union[trimesh.Trimesh, trimesh.Scene, list[trimesh.Trimesh]]
             if len(meshes_list) == 1:
                 export_obj = meshes_list[0]
             elif os.path.splitext(fn)[1] == ".glb":
@@ -406,9 +396,7 @@ class Mesh(URDFTypeWithMesh):
         node = self._unparse(path)
         return node
 
-    def copy(
-        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
-    ) -> "Mesh":
+    def copy(self, prefix: str = "", scale: Union[float, Sequence[float], None] = None) -> "Mesh":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -599,9 +587,7 @@ class Collision(URDFTypeWithMesh):
     }
     _TAG = "collision"
 
-    def __init__(
-        self, name: Optional[str], origin: Optional[npt.ArrayLike], geometry: Geometry
-    ):
+    def __init__(self, name: Optional[str], origin: Optional[npt.ArrayLike], geometry: Geometry):
         self.geometry = geometry
         self.name = name
         self.origin = origin
@@ -638,9 +624,7 @@ class Collision(URDFTypeWithMesh):
         self._origin = configure_origin(value)
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         name = node.attrib.get("name")
         geom_node = node.find("geometry")
         if geom_node is None:
@@ -766,9 +750,7 @@ class Visual(URDFTypeWithMesh):
         self._material = value
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         geom_node = node.find("geometry")
         if geom_node is None:
             raise ValueError("Visual element missing geometry")
@@ -784,9 +766,7 @@ class Visual(URDFTypeWithMesh):
         node.append(unparse_origin(self.origin))
         return node
 
-    def copy(
-        self, prefix: str = "", scale: Union[float, Sequence[float], None] = None
-    ) -> "Visual":
+    def copy(self, prefix: str = "", scale: Union[float, Sequence[float], None] = None) -> "Visual":
         """Create a deep copy of the visual with the prefix applied to all names.
 
         Parameters
@@ -834,9 +814,7 @@ class Inertial(URDFType):
 
     _TAG = "inertial"
 
-    def __init__(
-        self, mass: float, inertia: npt.ArrayLike, origin: Optional[npt.ArrayLike] = None
-    ):
+    def __init__(self, mass: float, inertia: npt.ArrayLike, origin: Optional[npt.ArrayLike] = None):
         self.mass = mass
         self.inertia = inertia
         self.origin = origin
@@ -872,9 +850,7 @@ class Inertial(URDFType):
         self._origin = configure_origin(value)
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         origin = parse_origin(node)
         mass = float(node.find("mass").attrib["value"])
         n = node.find("inertia")

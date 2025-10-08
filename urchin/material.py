@@ -64,9 +64,7 @@ class Texture(URDFType):
         self._image = value
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         # Explicitly parse fields for typing clarity
         filename = str(node.attrib["filename"]) if "filename" in node.attrib else ""
         fn = get_filename(path, filename)
@@ -80,9 +78,7 @@ class Texture(URDFType):
 
         return self._unparse(path)
 
-    def copy(
-        self, prefix: str = "", scale: Union[float, np.ndarray, None] = None
-    ) -> "Texture":
+    def copy(self, prefix: str = "", scale: Union[float, np.ndarray, None] = None) -> "Texture":
         """Create a deep copy with the prefix applied to all names.
 
         Parameters
@@ -167,9 +163,7 @@ class Material(URDFType):
         self._texture = value
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         name = str(node.attrib["name"]) if "name" in node.attrib else ""
         color_arr = None
         color_node = node.find("color")
@@ -199,9 +193,7 @@ class Material(URDFType):
                 node.append(color)
         return node
 
-    def copy(
-        self, prefix: str = "", scale: Union[float, np.ndarray, None] = None
-    ) -> "Material":
+    def copy(self, prefix: str = "", scale: Union[float, np.ndarray, None] = None) -> "Material":
         """Create a deep copy of the material with the prefix applied to all names.
 
         Parameters

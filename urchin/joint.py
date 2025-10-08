@@ -677,9 +677,7 @@ class Joint(URDFType):
             upper = self.limit.upper
         return cfg_val >= lower and cfg_val <= upper
 
-    def get_child_pose(
-        self, cfg: Union[float, npt.ArrayLike, None] = None
-    ) -> np.ndarray:
+    def get_child_pose(self, cfg: Union[float, npt.ArrayLike, None] = None) -> np.ndarray:
         """Computes the child pose relative to a parent pose for a given
         configuration value.
 
@@ -792,9 +790,7 @@ class Joint(URDFType):
             raise ValueError("Invalid configuration")
 
     @classmethod
-    def _from_xml(
-        cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None
-    ):
+    def _from_xml(cls, node: ET._Element, path: str, lazy_load_meshes: Optional[bool] = None):
         kwargs = cls._parse(node, path)
         kwargs["joint_type"] = str(node.attrib["type"])
         kwargs["parent"] = node.find("parent").attrib["link"]
