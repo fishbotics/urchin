@@ -1,7 +1,7 @@
 import numpy as np
 import trimesh.transformations as tfs
 
-from urchin import rpy_to_matrix, matrix_to_rpy, matrix_to_xyz_rpy, xyz_rpy_to_matrix
+from urchin import matrix_to_rpy, matrix_to_xyz_rpy, rpy_to_matrix, xyz_rpy_to_matrix
 
 
 def test_rpy_to_matrix():
