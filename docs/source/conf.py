@@ -79,7 +79,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns: list[str] = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -124,7 +124,7 @@ htmlhelp_basename = "urchindoc"
 
 # -- Options for LaTeX output ------------------------------------------------
 
-latex_elements = {
+latex_elements: dict[str, str] = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
@@ -217,9 +217,7 @@ class MyPythonDomain(PythonDomain):
     def find_obj(self, env, modname, classname, name, type, searchmode=0):
         """Ensures an object always resolves to the desired module
         if defined there."""
-        orig_matches = PythonDomain.find_obj(
-            self, env, modname, classname, name, type, searchmode
-        )
+        orig_matches = PythonDomain.find_obj(self, env, modname, classname, name, type, searchmode)
 
         if len(orig_matches) <= 1:
             return orig_matches

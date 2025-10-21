@@ -1,6 +1,27 @@
 repos:
-- repo: https://gitlab.com/pycqa/flake8
-  rev: 3.7.1
-  hooks:
-    - id: flake8
-      exclude: ^setup.py
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.7.1
+    hooks:
+      - id: flake8
+        exclude: ^setup.py
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.1
+    hooks:
+      - id: ruff
+        name: ruff (lint + isort)
+        args: ["--fix"]
+      - id: ruff-format
+        name: ruff (format)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        name: mypy
+        args: ["--config=pyproject.toml", "urchin"]
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest -q
+        language: system
+        pass_filenames: false

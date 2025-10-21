@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "urchin"
+version = "0.0.30"
+requires-python = ">=3.9"
+description = "URDF parser and manipulator for Python"
+readme = { text = "URDF parser and manipulator for Python. This package is a fork of urdfpy, which seems to be no longer maintained.", content-type = "text/plain" }
+authors = [
+  { name = "Adam Fishman", email = "hello@fishbotics.com" }
+]
+license = { text = "MIT License" }
+urls = { "Homepage" = "https://github.com/fishbotics/urchin" }
+keywords = ["robotics", "ros", "urdf", "robots", "parser"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Natural Language :: English",
+  "Topic :: Scientific/Engineering"
+]
+dependencies = [
+  "lxml",           # For XML DOM Tree
+  "networkx",       # For joint graph
+  "numpy>=1.20",          # Numpy
+  "pillow",         # For texture image loading
+  "pycollada>=0.6", # COLLADA (.dae) mesh loading via trimesh
+  "pyribbit>=0.1.46", # For visualization
+  "scipy",          # For trimesh, annoyingly
+  "trimesh"         # Mesh geometry loading/creation/saving
+]
+
+[project.optional-dependencies]
+dev = [
+  "flake8",        # Code formatting checker
+  "pre-commit",    # Pre-commit hooks
+  "pytest",        # Code testing
+  "pytest-cov",    # Coverage testing
+  "tox"            # Automatic virtualenv testing
+]
+docs = [
+  "sphinx",            # General doc library
+  "sphinx_rtd_theme",  # RTD theme for sphinx
+  "sphinx-automodapi"  # For generating nice tables
+]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["lxml.*", "trimesh.*", "networkx.*", "PIL.*", "pyribbit.*", "sphinx.*", "sphinx_rtd_theme"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
