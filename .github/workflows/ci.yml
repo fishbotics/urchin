@@ -27,7 +27,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install .[dev]
-          pip install mypy ruff
+          pip install mypy==1.18.2 ruff==0.14.1
 
       - name: Ruff Lint
         run: |
@@ -41,4 +41,3 @@ jobs:
       - name: Pytest
         run: |
           pytest -q
-
