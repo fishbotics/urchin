@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import time
 from collections import OrderedDict
 from typing import IO, Mapping, Optional, Sequence, Union, cast
@@ -1092,6 +1093,9 @@ class URDF(URDFTypeWithMesh):
         None
             Nothing. Writes the URDF XML to ``file_obj``.
         """
+        if isinstance(file_obj, Path):
+            file_obj = str(file_obj.expanduser().resolve()) # https://github.com/fishbotics/urchin/issues/35
+
         if isinstance(file_obj, str):
             path, _ = os.path.split(file_obj)
         else:
@@ -1207,6 +1211,9 @@ class URDF(URDFTypeWithMesh):
         urdf : :class:`.URDF`
             The parsed URDF.
         """
+        if isinstance(file_obj, Path):
+            file_obj = str(file_obj.expanduser().resolve()) # https://github.com/fishbotics/urchin/issues/35
+
         if isinstance(file_obj, str):
             if os.path.isfile(file_obj):
                 parser = ET.XMLParser(remove_comments=True, remove_blank_text=True)
