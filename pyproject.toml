@@ -71,3 +71,9 @@ fixable = ["ALL"]
 quote-style = "double"
 indent-style = "space"
 docstring-code-format = true
+
+[dependency-groups]
+dev = [
+    "numpy>=2.0.2",
+    "pytest>=8.4.2",
+]

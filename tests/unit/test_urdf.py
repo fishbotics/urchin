@@ -5,11 +5,7 @@ import trimesh
 from urchin import URDF, Joint, Link, Material, Transmission
 
 
-def test_urchin(tmpdir):
-    outfn = tmpdir.mkdir("urdf").join("ur5.urdf").strpath
-
-    # Load
-    u = URDF.load("tests/data/ur5/ur5.urdf")
+def _test_urdf(u,outfn):
 
     assert isinstance(u, URDF)
     for j in u.joints:
@@ -109,3 +105,17 @@ def test_urchin(tmpdir):
     assert isinstance(x, URDF)
     x = x.copy(scale=[1, 1, 3])
     assert isinstance(x, URDF)
+
+def test_urchin(tmpdir):
+    outfn = tmpdir.mkdir("urdf").join("ur5.urdf").strpath
+    # Load
+    u = URDF.load("tests/data/ur5/ur5.urdf")
+
+    _test_urdf(u, outfn)
+
+def test_urchin_pathlib(tmpdir):
+    from pathlib import Path
+    outfn = Path(tmpdir.mkdir("urdf").join("ur5.urdf"))
+    p = "tests/data/ur5/ur5.urdf"
+    u = URDF.load(Path(p))
+    _test_urdf(u, outfn)
