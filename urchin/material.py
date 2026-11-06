@@ -72,6 +72,12 @@ class Texture(URDFType):
         return cls(filename=filename, image=image)
 
     def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
+        # Textures referenced by a package:// URI live in their ROS
+        # package: keep the URI in the XML and do not save the image
+        # over the package's own asset file.
+        if self.filename.startswith("package://"):
+            return self._unparse(path)
+
         # Save the image
         filepath = get_filename(path, self.filename, makedirs=True)
         self.image.save(filepath)

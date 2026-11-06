@@ -190,6 +190,49 @@ def unparse_origin(matrix: npt.ArrayLike) -> ET._Element:
     return node
 
 
+def _package_dir_name(package_dir: str) -> Union[str, None]:
+    """Return the package name for a directory, or ``None`` if the
+    directory is not a ROS package.
+
+    A directory counts as a package when it contains a ``package.xml``
+    (catkin/ament) or ``manifest.xml`` (rosbuild) manifest, matching how
+    ``rospkg`` identifies packages. The name comes from the manifest's
+    ``<name>`` element when present, and otherwise from the directory
+    name (the rosbuild convention).
+    """
+    for manifest in ("package.xml", "manifest.xml"):
+        manifest_path = os.path.join(package_dir, manifest)
+        if os.path.isfile(manifest_path):
+            try:
+                name = ET.parse(manifest_path).getroot().findtext("name")
+            except Exception:
+                name = None
+            if name and name.strip():
+                return name.strip()
+            return os.path.basename(os.path.normpath(package_dir))
+    return None
+
+
+def _find_package_in_entry(entry: str, package_name: str) -> Union[str, None]:
+    """Find ``package_name`` under one ``ROS_PACKAGE_PATH`` entry.
+
+    Mirrors ``rospkg`` discovery: the package may be a direct child of
+    the entry, the entry itself may be the package root, or the package
+    may be nested deeper in the tree (e.g. ``<entry>/robot_repo/pkg``),
+    in which case it is identified by its manifest.
+    """
+    direct = os.path.join(entry, package_name)
+    if os.path.isdir(direct):
+        return direct
+    if not os.path.isdir(entry):
+        return None
+    for dirpath, dirnames, _filenames in os.walk(entry):
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+        if _package_dir_name(dirpath) == package_name:
+            return dirpath
+    return None
+
+
 def resolve_package_uri(uri: str) -> str:
     """Resolve a ``package://`` URI to a filesystem path.
 
@@ -198,8 +241,11 @@ def resolve_package_uri(uri: str) -> str:
     installation, the package is located through the same environment
     variables ROS tools use:
 
-    - ``ROS_PACKAGE_PATH``: a list of directories, each of which may
-      contain the package as a subdirectory.
+    - ``ROS_PACKAGE_PATH``: a list of directories that are searched the
+      way ``rospkg`` searches them -- a package may be a direct child of
+      an entry, the entry itself may be the package root, or the
+      package may be nested deeper in the entry's tree, where it is
+      identified by its ``package.xml``/``manifest.xml`` manifest.
     - ``AMENT_PREFIX_PATH``: a list of install prefixes, where the
       package lives under ``share/<package>``.
 
@@ -231,15 +277,17 @@ def resolve_package_uri(uri: str) -> str:
             "Invalid package URI {!r}: expected 'package://<package>/<path>'".format(uri)
         )
 
-    candidates = []
+    package_dirs = []
     for entry in os.environ.get("ROS_PACKAGE_PATH", "").split(os.pathsep):
         if entry:
-            candidates.append(os.path.join(entry, package_name))
+            found = _find_package_in_entry(entry, package_name)
+            if found is not None:
+                package_dirs.append(found)
     for entry in os.environ.get("AMENT_PREFIX_PATH", "").split(os.pathsep):
         if entry:
-            candidates.append(os.path.join(entry, "share", package_name))
+            package_dirs.append(os.path.join(entry, "share", package_name))
 
-    for package_dir in candidates:
+    for package_dir in package_dirs:
         if os.path.isdir(package_dir):
             resolved = os.path.normpath(os.path.join(package_dir, relative_path))
             if os.path.commonpath([package_dir, resolved]) != os.path.normpath(package_dir):

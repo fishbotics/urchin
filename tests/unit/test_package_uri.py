@@ -122,6 +122,49 @@ def test_get_filename_unchanged_for_plain_paths():
     assert get_filename("/base", "/abs/box.stl") == "/abs/box.stl"
 
 
+def _make_package_manifest(package_dir, name="test_pkg"):
+    package_dir.mkdir(parents=True, exist_ok=True)
+    (package_dir / "package.xml").write_text(
+        '<package format="2"><name>{}</name></package>'.format(name)
+    )
+
+
+def test_resolve_nested_package(tmp_path, monkeypatch):
+    # Package nested inside a repo directory: <entry>/robot_repo/test_pkg
+    entry = tmp_path / "ros_ws" / "src"
+    package_dir = entry / "robot_repo" / "test_pkg"
+    _make_package_mesh(package_dir)
+    _make_package_manifest(package_dir)
+    monkeypatch.setenv("ROS_PACKAGE_PATH", str(entry))
+    monkeypatch.delenv("AMENT_PREFIX_PATH", raising=False)
+    resolved = resolve_package_uri("package://test_pkg/meshes/box.stl")
+    assert resolved == str(package_dir / "meshes" / "box.stl")
+    assert os.path.exists(resolved)
+
+
+def test_resolve_entry_is_package_root(tmp_path, monkeypatch):
+    # The search entry points directly at the package root.
+    package_dir = tmp_path / "ws" / "src" / "robot_repo" / "test_pkg"
+    _make_package_mesh(package_dir)
+    _make_package_manifest(package_dir)
+    monkeypatch.setenv("ROS_PACKAGE_PATH", str(package_dir))
+    monkeypatch.delenv("AMENT_PREFIX_PATH", raising=False)
+    resolved = resolve_package_uri("package://test_pkg/meshes/box.stl")
+    assert resolved == str(package_dir / "meshes" / "box.stl")
+    assert os.path.exists(resolved)
+
+
+def test_resolve_nested_unknown_package(tmp_path, monkeypatch):
+    entry = tmp_path / "ros_ws" / "src"
+    package_dir = entry / "robot_repo" / "test_pkg"
+    _make_package_mesh(package_dir)
+    _make_package_manifest(package_dir)
+    monkeypatch.setenv("ROS_PACKAGE_PATH", str(entry))
+    monkeypatch.delenv("AMENT_PREFIX_PATH", raising=False)
+    with pytest.raises(ValueError, match="no_such_pkg"):
+        resolve_package_uri("package://no_such_pkg/meshes/box.stl")
+
+
 def _load_robot(tmp_path, **load_kwargs):
     urdf_path = tmp_path / "pkg_bot.urdf"
     urdf_path.write_text(URDF_WITH_PACKAGE_MESH)
@@ -158,3 +201,69 @@ def test_urdf_load_with_unknown_package(tmp_path, ros_package_path):
     urdf_path.write_text(URDF_WITH_PACKAGE_MESH.replace("test_pkg", "no_such_pkg"))
     with pytest.raises(ValueError, match="no_such_pkg"):
         URDF.load(str(urdf_path))
+
+
+URDF_WITH_PACKAGE_TEXTURE = """<robot name="pkg_bot">
+  <material name="checkered">
+    <texture filename="package://test_pkg/textures/checker.png"/>
+  </material>
+  <link name="base">
+    <visual>
+      <geometry>
+        <mesh filename="package://test_pkg/meshes/box.stl"/>
+      </geometry>
+      <material name="checkered"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://test_pkg/meshes/box.stl"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
+"""
+
+
+def _snapshot_tree(root):
+    return {
+        str(path.relative_to(root)): path.read_bytes()
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
+def test_save_does_not_overwrite_package_assets(tmp_path, ros_package_path):
+    from PIL import Image
+
+    package_dir = ros_package_path / "test_pkg"
+    texture_dir = package_dir / "textures"
+    texture_dir.mkdir(parents=True)
+    Image.new("RGB", (4, 4), (200, 30, 30)).save(str(texture_dir / "checker.png"))
+    before = _snapshot_tree(package_dir)
+
+    urdf_path = tmp_path / "pkg_bot.urdf"
+    urdf_path.write_text(URDF_WITH_PACKAGE_TEXTURE)
+    robot = URDF.load(str(urdf_path))
+
+    # Simulate in-memory edits: saving must still not touch the package.
+    for link in robot.links:
+        for element in list(link.visuals) + list(link.collisions):
+            for mesh in element.geometry.meshes:
+                mesh.apply_translation([1.0, 0.0, 0.0])
+    robot.materials[0].texture.image.putpixel((0, 0), (10, 220, 10))
+
+    out_dir = tmp_path / "saved"
+    out_dir.mkdir()
+    out_path = out_dir / "pkg_bot.urdf"
+    robot.save(str(out_path))
+
+    # The original package files are byte-for-byte unchanged, and the
+    # saved URDF still references the assets by their package URIs.
+    assert _snapshot_tree(package_dir) == before
+    saved_xml = out_path.read_text()
+    assert "package://test_pkg/meshes/box.stl" in saved_xml
+    assert "package://test_pkg/textures/checker.png" in saved_xml
+
+    # The saved URDF round-trips: its package URIs still resolve.
+    reloaded = URDF.load(str(out_path))
+    assert len(reloaded.links[0].visuals[0].geometry.meshes) == 1

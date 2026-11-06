@@ -377,6 +377,12 @@ class Mesh(URDFTypeWithMesh):
         )
 
     def _to_xml(self, parent: Optional[ET._Element], path: str) -> ET._Element:
+        # Meshes referenced by a package:// URI live in their ROS
+        # package: keep the URI in the XML and do not export over the
+        # package's own asset file.
+        if self.filename.startswith("package://"):
+            return self._unparse(path)
+
         # Get the filename
         fn = get_filename(path, self.filename, makedirs=True)
 
