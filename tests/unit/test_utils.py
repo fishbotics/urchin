@@ -14,6 +14,16 @@ def test_rpy_to_matrix():
     assert np.allclose(rpy_to_matrix([0, np.pi / 2, 0]), yr45)
     assert np.allclose(rpy_to_matrix([0, 0, np.pi / 2]), zr45)
     assert np.allclose(rpy_to_matrix(np.pi / 2 * np.ones(3)), c)
+    assert np.allclose(
+        rpy_to_matrix(
+            [
+                [np.pi / 2, 0, 0],
+                [0, np.pi / 2, 0],
+                [0, 0, np.pi / 2],
+            ]
+        ),
+        np.stack([xr45, yr45, zr45]),
+    )
 
 
 def test_matrix_to_rpy():
@@ -51,3 +61,13 @@ def test_xyz_rpy_to_matrix():
     assert np.allclose(xyz_rpy_to_matrix([1, 2, 3, np.pi / 2, 0, 0]), xr45)
     assert np.allclose(xyz_rpy_to_matrix([2, 3, 1, 0, np.pi / 2, 0]), yr45)
     assert np.allclose(xyz_rpy_to_matrix([3, 1, 2, 0, 0, np.pi / 2]), zr45)
+    assert np.allclose(
+        xyz_rpy_to_matrix(
+            [
+                [1, 2, 3, np.pi / 2, 0, 0],
+                [2, 3, 1, 0, np.pi / 2, 0],
+                [3, 1, 2, 0, 0, np.pi / 2],
+            ]
+        ),
+        np.stack([xr45, yr45, zr45]),
+    )

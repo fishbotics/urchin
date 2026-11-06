@@ -748,7 +748,7 @@ class Joint(URDFType):
 
         Parameters
         ----------
-        cfg : (n,) float or None
+        cfg : (n,) float, (n,2) float, (n,6) float, (n,4,4) float, or None
             The configuration values for this joint. They are interpreted
             based on the joint type as follows:
 
@@ -756,8 +756,10 @@ class Joint(URDFType):
             - ``prismatic`` - a translation along the axis in meters.
             - ``revolute`` - a rotation about the axis in radians.
             - ``continuous`` - a rotation about the axis in radians.
-            - ``planar`` - Not implemented.
-            - ``floating`` - Not implemented.
+            - ``planar`` - the x and y translation values in the plane,
+              as an (n,2) matrix.
+            - ``floating`` - the xyz values followed by the rpy values,
+              as an (n,6) matrix, or an (n,4,4) matrix.
 
             If ``cfg`` is ``None``, then this just returns the joint pose.
 
@@ -783,9 +785,19 @@ class Joint(URDFType):
             translation[:, :3, 3] = self.axis * cfg_arr[:, np.newaxis]
             return np.matmul(self.origin, translation)
         elif self.joint_type == "planar":
-            raise NotImplementedError()
+            cfg_arr = np.asanyarray(cfg, dtype=np.float64)
+            if cfg_arr.shape != (n_cfgs, 2):
+                raise ValueError("(n,2) float configuration required for planar joints")
+            translation = np.tile(np.eye(4, dtype=np.float64), (n_cfgs, 1, 1))
+            translation[:, :3, 3] = cfg_arr.dot(self.origin[:3, :2].T)
+            return np.matmul(self.origin, translation)
         elif self.joint_type == "floating":
-            raise NotImplementedError()
+            cfg_arr = configure_origin(cfg)
+            if cfg_arr.shape != (n_cfgs, 4, 4):
+                raise ValueError(
+                    "(n,6) or (n,4,4) float configuration required for floating joints"
+                )
+            return np.matmul(self.origin, cfg_arr)
         else:
             raise ValueError("Invalid configuration")
 

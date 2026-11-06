@@ -364,8 +364,9 @@ class URDF(URDFTypeWithMesh):
         ----------
         cfg : dict or (n), float
             A map from joints or joint names to configuration values for
-            each joint, or a list containing a value for each actuated joint
-            in sorted order from the base link.
+            each joint, a list containing a value for each actuated joint,
+            or a flat list containing a value for each degree of freedom in
+            sorted order from the base link.
             If not specified, all joints are assumed to be in their default
             configurations.
         link : str or :class:`.Link`
@@ -452,7 +453,7 @@ class URDF(URDFTypeWithMesh):
             One of the following: (A) a map from joints or joint names to vectors
             of joint configuration values, (B) a list of maps from joints or joint names
             to single configuration values, or (C) a list of ``n`` configuration vectors,
-            each of which has a vector with an entry for each actuated joint.
+            each of which has an entry for each degree of freedom.
         link : str or :class:`.Link`
             A single link or link name to return a pose for.
         links : list of str or list of :class:`.Link`
@@ -679,7 +680,11 @@ class URDF(URDFTypeWithMesh):
                             pose = pose.dot(S)
                     else:
                         self.mesh_name_list.append("")
-                    if visual.material is not None:
+                    if (
+                        visual.material is not None
+                        and visual.material.color is not None
+                        and isinstance(mesh.visual, trimesh.visual.ColorVisuals)
+                    ):
                         mesh.visual.face_colors = visual.material.color
                     fk[mesh] = pose
         return fk
@@ -1350,6 +1355,14 @@ class URDF(URDFTypeWithMesh):
             raise ValueError("URDF has no base link")
         return base_link, end_links
 
+    @classmethod
+    def _joint_dof(cls, joint: Joint) -> int:
+        if joint.joint_type == "planar":
+            return 2
+        elif joint.joint_type == "floating":
+            return 6
+        return 1
+
     def _process_cfg(
         self,
         cfg: Union[
@@ -1358,11 +1371,11 @@ class URDF(URDFTypeWithMesh):
             npt.ArrayLike,
             None,
         ],
-    ) -> dict[Joint, float]:
+    ) -> dict[Joint, Union[float, npt.NDArray[np.float64]]]:
         """Process a joint configuration spec into a dictionary mapping
         joints to configuration values.
         """
-        joint_cfg: dict[Joint, float] = {}
+        joint_cfg: dict[Joint, Union[float, npt.NDArray[np.float64]]] = {}
         if cfg is None:
             return joint_cfg
         if isinstance(cfg, dict):
@@ -1372,12 +1385,36 @@ class URDF(URDFTypeWithMesh):
                 elif isinstance(joint, Joint):
                     joint_cfg[joint] = cfg[joint]
         elif isinstance(cfg, (list, tuple, np.ndarray)):
-            if len(cfg) != len(self.actuated_joints):
+            # Preserve the existing per-joint nested form before treating scalar
+            # sequences as flattened values for each degree of freedom.
+            if len(cfg) == len(self.actuated_joints) and any(np.ndim(value) > 0 for value in cfg):
+                for joint, value in zip(self.actuated_joints, cfg):
+                    joint_cfg[joint] = value
+                return joint_cfg
+
+            total_dofs = sum(self._joint_dof(joint) for joint in self.actuated_joints)
+            try:
+                cfg_arr = np.asanyarray(cfg, dtype=np.float64)
+            except (TypeError, ValueError) as exc:
                 raise ValueError(
-                    "Cfg must have same length as actuated joints if specified as a numerical array"
+                    "Cfg must contain one value per actuated joint or one value "
+                    "per degree of freedom"
+                ) from exc
+            if cfg_arr.shape != (total_dofs,):
+                raise ValueError(
+                    "Cfg must contain one value per actuated joint or one value "
+                    "per degree of freedom"
                 )
-            for joint, value in zip(self.actuated_joints, cfg):
-                joint_cfg[joint] = value
+
+            start = 0
+            for joint in self.actuated_joints:
+                dof = self._joint_dof(joint)
+                end = start + dof
+                if dof == 1:
+                    joint_cfg[joint] = float(cfg_arr[start])
+                else:
+                    joint_cfg[joint] = cfg_arr[start:end]
+                start = end
         else:
             raise TypeError("Invalid type for config")
         return joint_cfg
@@ -1415,7 +1452,9 @@ class URDF(URDFTypeWithMesh):
                     n_cfgs = len(cfgs[joint])
         elif isinstance(cfgs, (list, tuple, np.ndarray)):
             n_cfgs = len(cfgs)
-            if isinstance(cfgs[0], dict):
+            if n_cfgs == 0:
+                pass
+            elif isinstance(cfgs[0], dict):
                 for cfg in cfgs:
                     for joint in cfg:
                         if isinstance(joint, str):
@@ -1431,20 +1470,39 @@ class URDF(URDFTypeWithMesh):
             elif cfgs[0] is None:
                 pass
             else:
-                cfgs = np.asanyarray(cfgs, dtype=np.float64)
-                for i, j in enumerate(self.actuated_joints):
-                    joint_cfg[j] = cast(npt.NDArray[np.float64], cfgs[:, i])
+                cfgs_arr = np.asanyarray(cfgs, dtype=np.float64)
+                total_dofs = sum(self._joint_dof(joint) for joint in self.actuated_joints)
+                if cfgs_arr.ndim != 2 or cfgs_arr.shape[1] != total_dofs:
+                    raise ValueError(
+                        "Cfgs must contain one column per degree of freedom "
+                        f"(expected {total_dofs})"
+                    )
+
+                start = 0
+                for joint in self.actuated_joints:
+                    dof = self._joint_dof(joint)
+                    end = start + dof
+                    batch_joint_values = cfgs_arr[:, start:end]
+                    joint_cfg[joint] = batch_joint_values[:, 0] if dof == 1 else batch_joint_values
+                    start = end
         else:
             raise ValueError("Incorrectly formatted config array")
 
         for j in joint_cfg:
-            if isinstance(joint_cfg[j], list):
+            configured_values = joint_cfg[j]
+            if isinstance(configured_values, list):
                 from typing import cast as _cast
 
-                if len(_cast(list[float], joint_cfg[j])) == 0:
+                if len(_cast(list[float], configured_values)) == 0:
                     joint_cfg[j] = None
-                elif n_cfgs is not None and len(_cast(list[float], joint_cfg[j])) != n_cfgs:
+                elif n_cfgs is not None and len(_cast(list[float], configured_values)) != n_cfgs:
                     raise ValueError("Inconsistent number of configurations for joints")
+            elif (
+                configured_values is not None
+                and n_cfgs is not None
+                and len(configured_values) != n_cfgs
+            ):
+                raise ValueError("Inconsistent number of configurations for joints")
 
         from typing import cast as _cast
 

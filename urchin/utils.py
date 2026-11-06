@@ -24,25 +24,40 @@ def rpy_to_matrix(coords: npt.ArrayLike) -> npt.NDArray[np.float64]:
 
     Parameters
     ----------
-    coords : (3,) float
+    coords : (...,3) float
         The roll-pitch-yaw coordinates in order (x-rot, y-rot, z-rot).
 
     Returns
     -------
-    R : (3,3) float
+    R : (...,3,3) float
         The corresponding homogenous 3x3 rotation matrix.
     """
     coords = np.asanyarray(coords, dtype=np.float64)
-    c3, c2, c1 = np.cos(coords)
-    s3, s2, s1 = np.sin(coords)
+    if coords.shape[-1:] != (3,):
+        raise ValueError("Roll-pitch-yaw coordinates must have shape (...,3)")
 
-    return np.array(
+    coords_cos = np.cos(coords)
+    coords_sin = np.sin(coords)
+    c1 = coords_cos[..., 2]
+    c2 = coords_cos[..., 1]
+    c3 = coords_cos[..., 0]
+    s1 = coords_sin[..., 2]
+    s2 = coords_sin[..., 1]
+    s3 = coords_sin[..., 0]
+
+    return np.stack(
         [
-            [c1 * c2, (c1 * s2 * s3) - (c3 * s1), (s1 * s3) + (c1 * c3 * s2)],
-            [c2 * s1, (c1 * c3) + (s1 * s2 * s3), (c3 * s1 * s2) - (c1 * s3)],
-            [-s2, c2 * s3, c2 * c3],
+            np.stack(
+                [c1 * c2, (c1 * s2 * s3) - (c3 * s1), (s1 * s3) + (c1 * c3 * s2)],
+                axis=-1,
+            ),
+            np.stack(
+                [c2 * s1, (c1 * c3) + (s1 * s2 * s3), (c3 * s1 * s2) - (c1 * s3)],
+                axis=-1,
+            ),
+            np.stack([-s2, c2 * s3, c2 * c3], axis=-1),
         ],
-        dtype=np.float64,
+        axis=-2,
     )
 
 
@@ -121,18 +136,22 @@ def xyz_rpy_to_matrix(xyz_rpy: npt.ArrayLike) -> npt.NDArray[np.float64]:
 
     Parameters
     ----------
-    xyz_rpy : (6,) float
+    xyz_rpy : (...,6) float
         The xyz_rpy vector.
 
     Returns
     -------
-    matrix : (4,4) float
+    matrix : (...,4,4) float
         The homogenous transform matrix.
     """
-    matrix = np.eye(4, dtype=np.float64)
     arr = np.asanyarray(xyz_rpy, dtype=np.float64)
-    matrix[:3, 3] = arr[:3]
-    matrix[:3, :3] = rpy_to_matrix(arr[3:])
+    if arr.shape[-1:] != (6,):
+        raise ValueError("XYZ-RPY coordinates must have shape (...,6)")
+
+    matrix = np.zeros(arr.shape[:-1] + (4, 4), dtype=np.float64)
+    matrix[..., 3, 3] = 1.0
+    matrix[..., :3, 3] = arr[..., :3]
+    matrix[..., :3, :3] = rpy_to_matrix(arr[..., 3:])
     return matrix
 
 
@@ -260,23 +279,26 @@ def configure_origin(
 
     Parameters
     ----------
-    value : None, (6,) float, or (4,4) float
+    value : None, (...,6) float, or (...,4,4) float
         The value to turn into the matrix.
-        If (6,), interpreted as xyzrpy coordinates.
+        If (...,6), interpreted as xyzrpy coordinates.
 
     Returns
     -------
-    matrix : (4,4) float
+    matrix : (...,4,4) float
         The created matrix. If ``value`` is ``None``, returns the identity.
     """
     if value is None:
         value = np.eye(4, dtype=np.float64)
     elif isinstance(value, (list, tuple, np.ndarray)):
         value = np.asanyarray(value, dtype=np.float64)
-        if value.shape == (6,):
+        if value.shape[-1:] == (6,):
             value = xyz_rpy_to_matrix(value)
-        elif value.shape != (4, 4):
-            raise ValueError("Origin must be specified as a 4x4 homogenous transformation matrix")
+        elif value.shape[-2:] != (4, 4):
+            raise ValueError(
+                "Origin must be specified as an (...,6) vector or (...,4,4) "
+                "homogenous transformation matrix"
+            )
     else:
         raise TypeError("Invalid type for origin, expect 4x4 matrix")
     return value
