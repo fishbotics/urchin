@@ -680,7 +680,11 @@ class URDF(URDFTypeWithMesh):
                             pose = pose.dot(S)
                     else:
                         self.mesh_name_list.append("")
-                    if visual.material is not None:
+                    if (
+                        visual.material is not None
+                        and visual.material.color is not None
+                        and isinstance(mesh.visual, trimesh.visual.ColorVisuals)
+                    ):
                         mesh.visual.face_colors = visual.material.color
                     fk[mesh] = pose
         return fk

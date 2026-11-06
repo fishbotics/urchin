@@ -140,12 +140,13 @@ class Material(URDFType):
 
     @color.setter
     def color(self, value: Optional[npt.ArrayLike]) -> None:
+        color: Optional[npt.NDArray[np.float64]] = None
         if value is not None:
-            value = np.asanyarray(value).astype(float)
-            value = np.clip(value, 0.0, 1.0)
-            if value.shape != (4,):
+            color = np.asanyarray(value).astype(float)
+            color = np.clip(color, 0.0, 1.0)
+            if color.shape != (4,):
                 raise ValueError("Color must be a (4,) float")
-        self._color = value
+        self._color = color
 
     @property
     def texture(self) -> Optional[Texture]:

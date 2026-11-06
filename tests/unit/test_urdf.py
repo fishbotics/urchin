@@ -1,8 +1,19 @@
 import numpy as np
 import pytest
 import trimesh
+from PIL import Image
 
-from urchin import URDF, Joint, Link, Material, Transmission, xyz_rpy_to_matrix
+from urchin import (
+    URDF,
+    Geometry,
+    Joint,
+    Link,
+    Material,
+    Mesh,
+    Transmission,
+    Visual,
+    xyz_rpy_to_matrix,
+)
 
 
 def _make_multi_dof_urdf():
@@ -124,6 +135,36 @@ def test_urchin(tmpdir):
     assert isinstance(x, URDF)
     x = x.copy(scale=[1, 1, 3])
     assert isinstance(x, URDF)
+
+
+@pytest.mark.parametrize("textured", [False, True])
+@pytest.mark.parametrize("material_color", [[1.0, 0.0, 0.0, 1.0], None])
+def test_visual_trimesh_fk_material_colors_and_textures(textured, material_color):
+    mesh = trimesh.creation.box()
+    mesh.visual.face_colors = [0, 0, 255, 255]
+    if textured:
+        image = Image.new("RGB", (2, 2), "blue")
+        uv = np.zeros((len(mesh.vertices), 2))
+        mesh.visual = trimesh.visual.TextureVisuals(uv=uv, image=image)
+    original_visual = mesh.visual
+    visual = Visual(
+        Geometry(mesh=Mesh("box.obj", combine=False, meshes=mesh)),
+        material=Material("material", color=material_color),
+    )
+    robot = URDF("visuals", [Link("base", None, [visual], None)])
+
+    fk = robot.visual_trimesh_fk()
+
+    assert np.allclose(fk[mesh], np.eye(4))
+    assert mesh.visual is original_visual
+    if textured:
+        assert mesh.visual.material.image is image
+        np.testing.assert_array_equal(mesh.visual.uv, uv)
+    else:
+        expected_color = [255, 0, 0, 255] if material_color is not None else [0, 0, 255, 255]
+        np.testing.assert_array_equal(
+            mesh.visual.face_colors, np.tile(expected_color, (len(mesh.faces), 1))
+        )
 
 
 def test_multi_dof_flat_configurations():
