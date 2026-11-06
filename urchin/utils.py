@@ -209,6 +209,128 @@ def unparse_origin(matrix: npt.ArrayLike) -> ET._Element:
     return node
 
 
+def _package_dir_name(package_dir: str) -> Union[str, None]:
+    """Return the package name for a directory, or ``None`` if the
+    directory is not a ROS package.
+
+    A directory counts as a package when it contains a ``package.xml``
+    (catkin/ament) or ``manifest.xml`` (rosbuild) manifest, matching how
+    ``rospkg`` identifies packages. The name comes from the manifest's
+    ``<name>`` element when present, and otherwise from the directory
+    name (the rosbuild convention).
+    """
+    for manifest in ("package.xml", "manifest.xml"):
+        manifest_path = os.path.join(package_dir, manifest)
+        if os.path.isfile(manifest_path):
+            try:
+                name = ET.parse(manifest_path).getroot().findtext("name")
+            except Exception:
+                name = None
+            if name and name.strip():
+                return name.strip()
+            return os.path.basename(os.path.normpath(package_dir))
+    return None
+
+
+def _find_package_in_entry(entry: str, package_name: str) -> Union[str, None]:
+    """Find ``package_name`` under one ``ROS_PACKAGE_PATH`` entry.
+
+    Mirrors ``rospkg`` discovery: the package may be a direct child of
+    the entry, the entry itself may be the package root, or the package
+    may be nested deeper in the tree (e.g. ``<entry>/robot_repo/pkg``),
+    in which case it is identified by its manifest. Symlinked directories
+    are followed, while directories containing ``CATKIN_IGNORE`` and
+    their descendants are skipped.
+    """
+    if not os.path.isdir(entry) or os.path.isfile(os.path.join(entry, "CATKIN_IGNORE")):
+        return None
+    direct = os.path.join(entry, package_name)
+    if os.path.isdir(direct) and not os.path.isfile(os.path.join(direct, "CATKIN_IGNORE")):
+        return direct
+
+    visited: set[str] = set()
+    for dirpath, dirnames, filenames in os.walk(entry, followlinks=True):
+        real_path = os.path.realpath(dirpath)
+        if "CATKIN_IGNORE" in filenames or real_path in visited:
+            dirnames[:] = []
+            continue
+        # Following symlinks must not revisit a directory through a cycle.
+        visited.add(real_path)
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+        if _package_dir_name(dirpath) == package_name:
+            return dirpath
+    return None
+
+
+def resolve_package_uri(uri: str) -> str:
+    """Resolve a ``package://`` URI to a filesystem path.
+
+    URDF files in the ROS ecosystem typically reference meshes and
+    textures as ``package://<package>/<relative path>``. Without a ROS
+    installation, the package is located through the same environment
+    variables ROS tools use:
+
+    - ``ROS_PACKAGE_PATH``: a list of directories that are searched the
+      way ``rospkg`` searches them -- a package may be a direct child of
+      an entry, the entry itself may be the package root, or the
+      package may be nested deeper in the entry's tree, where it is
+      identified by its ``package.xml``/``manifest.xml`` manifest.
+    - ``AMENT_PREFIX_PATH``: a list of install prefixes, where the
+      package lives under ``share/<package>``.
+
+    The first search path (in the order above) that contains the package
+    wins, matching ``rospkg`` semantics.
+
+    Parameters
+    ----------
+    uri : str
+        The ``package://`` URI to resolve.
+
+    Returns
+    -------
+    resolved : str
+        The filesystem path the URI points to. The file itself is not
+        required to exist; only the package directory must be found.
+
+    Raises
+    ------
+    ValueError
+        If the URI is malformed, escapes the package directory, or the
+        package cannot be found in either environment variable.
+    """
+    if not uri.startswith("package://"):
+        raise ValueError("Not a package URI: {!r}".format(uri))
+    package_name, _, relative_path = uri[len("package://") :].partition("/")
+    if not package_name or not relative_path:
+        raise ValueError(
+            "Invalid package URI {!r}: expected 'package://<package>/<path>'".format(uri)
+        )
+
+    package_dirs = []
+    for entry in os.environ.get("ROS_PACKAGE_PATH", "").split(os.pathsep):
+        if entry:
+            found = _find_package_in_entry(entry, package_name)
+            if found is not None:
+                package_dirs.append(found)
+    for entry in os.environ.get("AMENT_PREFIX_PATH", "").split(os.pathsep):
+        if entry:
+            package_dirs.append(os.path.join(entry, "share", package_name))
+
+    for package_dir in package_dirs:
+        if os.path.isdir(package_dir):
+            resolved = os.path.normpath(os.path.join(package_dir, relative_path))
+            if os.path.commonpath([package_dir, resolved]) != os.path.normpath(package_dir):
+                raise ValueError(
+                    "Invalid package URI {!r}: path escapes the package directory".format(uri)
+                )
+            return resolved
+
+    raise ValueError(
+        "Could not resolve {!r}: package '{}' was not found in "
+        "ROS_PACKAGE_PATH or AMENT_PREFIX_PATH".format(uri, package_name)
+    )
+
+
 def get_filename(base_path: str, file_path: str, makedirs: bool = False) -> str:
     """Formats a file path correctly for URDF loading.
 
@@ -217,7 +339,8 @@ def get_filename(base_path: str, file_path: str, makedirs: bool = False) -> str:
     base_path : str
         The base path to the URDF's folder.
     file_path : str
-        The path to the file.
+        The path to the file. This may also be a ``package://`` URI, in
+        which case it is resolved with :func:`resolve_package_uri`.
     makedirs : bool, optional
         If ``True``, the directories leading to the file will be created
         if needed.
@@ -229,7 +352,9 @@ def get_filename(base_path: str, file_path: str, makedirs: bool = False) -> str:
         absolute path, otherwise that path joined to ``base_path``.
     """
     fn = file_path
-    if not os.path.isabs(file_path):
+    if file_path.startswith("package://"):
+        fn = resolve_package_uri(file_path)
+    elif not os.path.isabs(file_path):
         fn = os.path.join(base_path, file_path)
     if makedirs:
         d, _ = os.path.split(fn)
