@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "urchin"
-version = "0.0.30"
+version = "0.0.31"
 requires-python = ">=3.9"
 description = "URDF parser and manipulator for Python"
 readme = { text = "URDF parser and manipulator for Python. This package is a fork of urdfpy, which seems to be no longer maintained.", content-type = "text/plain" }

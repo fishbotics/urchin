@@ -3448,7 +3448,7 @@ wheels = [
 
 [[package]]
 name = "urchin"
-version = "0.0.30"
+version = "0.0.31"
 source = { editable = "." }
 dependencies = [
     { name = "lxml" },
