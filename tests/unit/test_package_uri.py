@@ -165,6 +165,61 @@ def test_resolve_nested_unknown_package(tmp_path, monkeypatch):
         resolve_package_uri("package://no_such_pkg/meshes/box.stl")
 
 
+@pytest.mark.parametrize("ignored_location", ["entry", "direct", "nested"])
+def test_resolve_skips_catkin_ignore(tmp_path, monkeypatch, ignored_location):
+    ignored_entry = tmp_path / "ignored_overlay"
+    ignored_package = ignored_entry / "test_pkg"
+    if ignored_location == "nested":
+        ignored_package = ignored_entry / "robot_repo" / "test_pkg"
+    _make_package_mesh(ignored_package)
+    _make_package_manifest(ignored_package)
+    ignored_dir = {
+        "entry": ignored_entry,
+        "direct": ignored_package,
+        "nested": ignored_package.parent,
+    }[ignored_location]
+    (ignored_dir / "CATKIN_IGNORE").touch()
+
+    active_entry = tmp_path / "active_underlay"
+    active_package = active_entry / "test_pkg"
+    _make_package_mesh(active_package)
+    _make_package_manifest(active_package)
+    monkeypatch.setenv("ROS_PACKAGE_PATH", os.pathsep.join(map(str, [ignored_entry, active_entry])))
+    monkeypatch.delenv("AMENT_PREFIX_PATH", raising=False)
+
+    uri = "package://test_pkg/meshes/box.stl"
+    assert resolve_package_uri(uri) == str(active_package / "meshes" / "box.stl")
+
+    monkeypatch.setenv("ROS_PACKAGE_PATH", str(ignored_entry))
+    with pytest.raises(ValueError, match="test_pkg"):
+        resolve_package_uri(uri)
+
+
+@pytest.mark.parametrize("with_cycle", [False, True])
+def test_load_from_symlinked_repository(tmp_path, monkeypatch, with_cycle):
+    external_repo = tmp_path / "external_repo"
+    package_dir = external_repo / "test_pkg"
+    _make_package_mesh(package_dir)
+    _make_package_manifest(package_dir)
+    if with_cycle:
+        (external_repo / "a_loop").symlink_to(external_repo, target_is_directory=True)
+
+    entry = tmp_path / "ros_ws" / "src"
+    entry.mkdir(parents=True)
+    linked_repo = entry / "robot_repo"
+    linked_repo.symlink_to(external_repo, target_is_directory=True)
+    monkeypatch.setenv("ROS_PACKAGE_PATH", str(entry))
+    monkeypatch.delenv("AMENT_PREFIX_PATH", raising=False)
+
+    assert resolve_package_uri("package://test_pkg/meshes/box.stl") == str(
+        linked_repo / "test_pkg" / "meshes" / "box.stl"
+    )
+    robot = _load_robot(tmp_path)
+    assert robot.links[0].visuals[0].geometry.meshes[0].volume == pytest.approx(0.1 * 0.2 * 0.3)
+    with pytest.raises(ValueError, match="no_such_pkg"):
+        resolve_package_uri("package://no_such_pkg/meshes/box.stl")
+
+
 def _load_robot(tmp_path, **load_kwargs):
     urdf_path = tmp_path / "pkg_bot.urdf"
     urdf_path.write_text(URDF_WITH_PACKAGE_MESH)

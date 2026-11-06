@@ -219,14 +219,24 @@ def _find_package_in_entry(entry: str, package_name: str) -> Union[str, None]:
     Mirrors ``rospkg`` discovery: the package may be a direct child of
     the entry, the entry itself may be the package root, or the package
     may be nested deeper in the tree (e.g. ``<entry>/robot_repo/pkg``),
-    in which case it is identified by its manifest.
+    in which case it is identified by its manifest. Symlinked directories
+    are followed, while directories containing ``CATKIN_IGNORE`` and
+    their descendants are skipped.
     """
-    direct = os.path.join(entry, package_name)
-    if os.path.isdir(direct):
-        return direct
-    if not os.path.isdir(entry):
+    if not os.path.isdir(entry) or os.path.isfile(os.path.join(entry, "CATKIN_IGNORE")):
         return None
-    for dirpath, dirnames, _filenames in os.walk(entry):
+    direct = os.path.join(entry, package_name)
+    if os.path.isdir(direct) and not os.path.isfile(os.path.join(direct, "CATKIN_IGNORE")):
+        return direct
+
+    visited: set[str] = set()
+    for dirpath, dirnames, filenames in os.walk(entry, followlinks=True):
+        real_path = os.path.realpath(dirpath)
+        if "CATKIN_IGNORE" in filenames or real_path in visited:
+            dirnames[:] = []
+            continue
+        # Following symlinks must not revisit a directory through a cycle.
+        visited.add(real_path)
         dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
         if _package_dir_name(dirpath) == package_name:
             return dirpath
