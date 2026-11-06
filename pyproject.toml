@@ -50,6 +50,14 @@ docs = [
   "sphinx-automodapi"  # For generating nice tables
 ]
 
+[dependency-groups]
+dev = [
+  "mypy==1.18.2",
+  "pytest",
+  "pytest-cov",
+  "ruff==0.14.1",
+]
+
 [tool.mypy]
 strict = false
 warn_unused_ignores = true

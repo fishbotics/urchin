@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 import trimesh
@@ -31,11 +33,20 @@ def _make_multi_dof_urdf():
     return URDF("multi_dof", links, joints)
 
 
-def test_urchin(tmpdir):
-    outfn = tmpdir.mkdir("urdf").join("ur5.urdf").strpath
+class _CustomPathLike:
+    def __init__(self, path):
+        self.path = str(path)
+
+    def __fspath__(self):
+        return self.path
+
+
+@pytest.mark.parametrize("path_type", [str, Path, _CustomPathLike])
+def test_urchin(tmpdir, path_type):
+    outfn = path_type(tmpdir.mkdir("urdf").join("ur5.urdf").strpath)
 
     # Load
-    u = URDF.load("tests/data/ur5/ur5.urdf")
+    u = URDF.load(path_type("tests/data/ur5/ur5.urdf"))
 
     assert isinstance(u, URDF)
     for j in u.joints:
@@ -135,6 +146,29 @@ def test_urchin(tmpdir):
     assert isinstance(x, URDF)
     x = x.copy(scale=[1, 1, 3])
     assert isinstance(x, URDF)
+
+
+def test_load_pathlike_lazy_meshes():
+    robot = URDF.load(Path("tests/data/ur5/ur5.urdf"), lazy_load_meshes=True)
+
+    meshes = robot.visual_trimesh_fk()
+
+    assert meshes
+    assert all(isinstance(mesh, trimesh.Trimesh) for mesh in meshes)
+
+
+def test_urdf_file_object_round_trip(tmp_path):
+    with Path("tests/data/ur5/ur5.urdf").open("rb") as source:
+        robot = URDF.load(source)
+    output = tmp_path / "ur5.urdf"
+    with output.open("wb") as destination:
+        robot.save(destination)
+    with output.open("rb") as source:
+        reloaded = URDF.load(source)
+
+    assert list(reloaded.link_map) == list(robot.link_map)
+    assert list(reloaded.joint_map) == list(robot.joint_map)
+    assert len(reloaded.visual_trimesh_fk()) == len(robot.visual_trimesh_fk())
 
 
 @pytest.mark.parametrize("textured", [False, True])

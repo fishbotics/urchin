@@ -1081,12 +1081,12 @@ class URDF(URDFTypeWithMesh):
             other_xml=self.other_xml,
         )
 
-    def save(self, file_obj: Union[str, IO[bytes], IO[str]]) -> None:
+    def save(self, file_obj: Union[str, os.PathLike[str], IO[bytes], IO[str]]) -> None:
         """Save this URDF to a file.
 
         Parameters
         ----------
-        file_obj : str or file-like object
+        file_obj : str, path-like object, or file-like object
             The file to save the URDF to. Should be the path to the
             ``.urdf`` XML file. Any paths in the URDF should be specified
             as relative paths to the ``.urdf`` file instead of as ROS
@@ -1097,6 +1097,8 @@ class URDF(URDFTypeWithMesh):
         None
             Nothing. Writes the URDF XML to ``file_obj``.
         """
+        if isinstance(file_obj, os.PathLike):
+            file_obj = os.fspath(file_obj)
         if isinstance(file_obj, str):
             path, _ = os.path.split(file_obj)
         else:
@@ -1191,13 +1193,15 @@ class URDF(URDFTypeWithMesh):
 
     @classmethod
     def load(
-        cls, file_obj: Union[str, IO[bytes], IO[str]], lazy_load_meshes: bool = False
+        cls,
+        file_obj: Union[str, os.PathLike[str], IO[bytes], IO[str]],
+        lazy_load_meshes: bool = False,
     ) -> "URDF":
         """Load a URDF from a file.
 
         Parameters
         ----------
-        file_obj : str or file-like object
+        file_obj : str, path-like object, or file-like object
             The file to load the URDF from. Should be the path to the
             ``.urdf`` XML file. Any paths in the URDF should be specified
             as relative paths to the ``.urdf`` file instead of as ROS
@@ -1212,6 +1216,8 @@ class URDF(URDFTypeWithMesh):
         urdf : :class:`.URDF`
             The parsed URDF.
         """
+        if isinstance(file_obj, os.PathLike):
+            file_obj = os.fspath(file_obj)
         if isinstance(file_obj, str):
             if os.path.isfile(file_obj):
                 parser = ET.XMLParser(remove_comments=True, remove_blank_text=True)
