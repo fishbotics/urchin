@@ -2396,7 +2396,7 @@ wheels = [
 
 [[package]]
 name = "pyribbit"
-version = "0.1.46"
+version = "0.1.47"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "freetype-py" },
@@ -2424,9 +2424,9 @@ dependencies = [
     { name = "trimesh", version = "4.12.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "trimesh", version = "5.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/59/8d/14f81c131dd88be41ef3a0373e2e8bf147bc0b0459b36e98cbb82b8235ba/pyribbit-0.1.46.tar.gz", hash = "sha256:3bb7a31841549ed74c50e31415738d2494b720df825cf387501f17102299940b", size = 1204125, upload-time = "2023-03-02T01:12:25.838Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/14/16be13c8a458642c635cdcfd0837c8fce6c83af0383c656a3c1f48c65b14/pyribbit-0.1.47.tar.gz", hash = "sha256:948d827be83eb12b0ac7a92adc0ffcf4815526b10c67256474faf448fe548beb", size = 1205328, upload-time = "2026-11-06T21:20:31.559Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/43/00e9f7a133ef5fb30dab75e8c39b0fd9640129ed52c8202a86ef7aaf4363/pyribbit-0.1.46-py3-none-any.whl", hash = "sha256:0d4943f7cc6903f20ef42787e9357d7bb25c95f2c04da9dfa1a8021bdf9e0ab6", size = 1214168, upload-time = "2023-03-02T01:12:23.137Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/bf/14060697e065af8ddeabb553d2d9e89f53a7950a9e4d9d1d297a83b91db7/pyribbit-0.1.47-py3-none-any.whl", hash = "sha256:306f6cadd5fac6405e942bd484cd4833b7bd9e229711f20a42303f8eec3a8589", size = 1214476, upload-time = "2026-11-06T21:20:30.106Z" },
 ]
 
 [[package]]
@@ -3448,7 +3448,7 @@ wheels = [
 
 [[package]]
 name = "urchin"
-version = "0.0.31"
+version = "0.0.32"
 source = { editable = "." }
 dependencies = [
     { name = "lxml" },
@@ -3517,7 +3517,7 @@ requires-dist = [
     { name = "pillow" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pycollada", specifier = ">=0.6" },
-    { name = "pyribbit", specifier = ">=0.1.46" },
+    { name = "pyribbit", specifier = ">=0.1.47" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "scipy" },

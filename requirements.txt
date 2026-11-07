@@ -3,7 +3,7 @@ networkx
 numpy
 pillow
 pycollada
-pyribbit
+pyribbit>=0.1.47
 six
 trimesh
 sphinx

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import sys
+import threading
 import time
 from collections import OrderedDict
 from typing import IO, Mapping, Optional, Sequence, Union, cast
@@ -883,6 +885,13 @@ class URDF(URDFTypeWithMesh):
             If True, the collision geometry is visualized instead of
             the visual geometry.
 
+        Notes
+        -----
+        This method blocks until the viewer is closed on all platforms.
+        On macOS, call this method from the main thread. Scene updates
+        run on the viewer's event loop. On other platforms, the viewer
+        runs in a background thread while this method updates the scene.
+
         Examples
         --------
 
@@ -909,6 +918,9 @@ class URDF(URDFTypeWithMesh):
         .. image:: /_static/ur5_three_joints.gif
 
         """
+        if sys.platform == "darwin" and threading.current_thread() is not threading.main_thread():
+            raise RuntimeError("URDF.animate() must be called from the main thread on macOS")
+
         import pyribbit  # Save pyribbit import for here for CI
 
         ct = cfg_trajectory
@@ -985,14 +997,22 @@ class URDF(URDFTypeWithMesh):
         # Get base pose to focus on
         blp = self.link_fk(links=[self.base_link])[self.base_link]
 
-        # Pop the visualizer asynchronously
+        # macOS requires the viewer's event loop on the main thread.
+        run_in_thread = sys.platform != "darwin"
         v = pyribbit.Viewer(
-            scene, run_in_thread=True, use_raymond_lighting=True, view_center=blp[:3, 3]
+            scene,
+            run_in_thread=run_in_thread,
+            auto_start=run_in_thread,
+            use_raymond_lighting=True,
+            view_center=blp[:3, 3],
         )
 
-        # Now, run our loop
         i = 0
-        while v.is_active:
+
+        def update_scene(_dt=0.0):
+            nonlocal i
+            if not v.is_active:
+                return
             cfg = {k: new_ct[k][i] for k in new_ct}
             i = (i + 1) % len(times)
 
@@ -1001,13 +1021,22 @@ class URDF(URDFTypeWithMesh):
             else:
                 fk = self.visual_trimesh_fk(cfg=cfg)
 
-            v.render_lock.acquire()
-            for mesh in fk:
-                pose = fk[mesh]
-                node_map[mesh].matrix = pose
-            v.render_lock.release()
+            with v.render_lock:
+                for mesh, pose in fk.items():
+                    node_map[mesh].matrix = pose
 
-            time.sleep(1.0 / fps)
+        if run_in_thread:
+            while v.is_active:
+                update_scene()
+                time.sleep(1.0 / fps)
+        else:
+            from pyglet import clock
+
+            clock.schedule_interval(update_scene, 1.0 / fps)
+            try:
+                v.start()
+            finally:
+                clock.unschedule(update_scene)
 
     def show(
         self,
