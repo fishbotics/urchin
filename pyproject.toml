@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "urchin"
-version = "0.0.31"
+version = "0.0.32"
 requires-python = ">=3.9"
 description = "URDF parser and manipulator for Python"
 readme = { text = "URDF parser and manipulator for Python. This package is a fork of urdfpy, which seems to be no longer maintained.", content-type = "text/plain" }
@@ -31,7 +31,7 @@ dependencies = [
   "numpy>=1.20",          # Numpy
   "pillow",         # For texture image loading
   "pycollada>=0.6", # COLLADA (.dae) mesh loading via trimesh
-  "pyribbit>=0.1.46", # For visualization
+  "pyribbit>=0.1.47", # For visualization
   "scipy",          # For trimesh, annoyingly
   "trimesh"         # Mesh geometry loading/creation/saving
 ]
